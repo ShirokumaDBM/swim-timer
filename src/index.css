@@ -1,0 +1,103 @@
+:root {
+  --bg: #f6f8fa;
+  --fg: #1f2328;
+  --muted: #656d76;
+  --border: #d0d7de;
+  --header-bg: #0b5cad;
+  --header-fg: #ffffff;
+  /* 前本差: 遅くなった = 赤、速くなった = 青 */
+  --slower: #c62828;
+  --faster: #1565c0;
+
+  font-family: system-ui, 'Segoe UI', 'Yu Gothic UI', 'Meiryo', sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+/* ===== 各画面で共通の部品 ===== */
+.page input,
+.page select,
+.page textarea {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.page input[type='checkbox'] {
+  padding: 0;
+}
+
+.page button {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.page button:hover {
+  background: #f0f3f6;
+}
+
+.page button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.page button.primary {
+  background: var(--header-bg);
+  border-color: var(--header-bg);
+  color: #fff;
+}
+
+.page button.danger {
+  background: var(--slower);
+  border-color: var(--slower);
+  color: #fff;
+}
+
+.page button.danger-outline {
+  color: var(--slower);
+}
+
+.page .error {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: #fdecea;
+  color: var(--slower);
+}
+
+.page .empty {
+  color: var(--muted);
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.card {
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+/* タイムの数字の幅をそろえる */
+.num {
+  font-variant-numeric: tabular-nums;
+}

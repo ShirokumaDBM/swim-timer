@@ -1,0 +1,270 @@
+.session-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.session-head h3 {
+  margin: 0;
+}
+
+.session-head .head-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.finished-note {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #eef5fc;
+  color: var(--header-bg);
+  font-size: 0.9rem;
+}
+
+.finish-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid #f0b429;
+  border-radius: 6px;
+  background: #fffbea;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress strong {
+  font-size: 1.2rem;
+}
+
+.progress-bar {
+  display: inline-block;
+  width: 160px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.progress-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--header-bg);
+  transition: width 0.2s;
+}
+
+.order-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page .order-switch button.preset {
+  font-size: 0.85rem;
+}
+
+.page .order-switch button.preset.selected {
+  border-color: var(--header-bg);
+  background: #e6f0fa;
+  color: var(--header-bg);
+  font-weight: bold;
+}
+
+.input-page .error {
+  margin: 0 0 12px;
+}
+
+/* ===== 入力表 ===== */
+.grid-scroll {
+  overflow: auto;
+  max-height: calc(100vh - 260px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.time-grid {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.time-grid th,
+.time-grid td {
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+  white-space: nowrap;
+}
+
+.time-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 6px 8px;
+  background: #f0f3f6;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.time-grid thead th.current-rep {
+  background: var(--header-bg);
+  color: #fff;
+}
+
+/* 選手名と平均は横スクロールしても左に固定 */
+.time-grid .name-col,
+.time-grid .avg-col {
+  position: sticky;
+  z-index: 1;
+  background: #fff;
+}
+
+.time-grid .name-col {
+  left: 0;
+  width: 7.5rem;
+  min-width: 7.5rem;
+  max-width: 7.5rem;
+  padding: 0 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.time-grid .avg-col {
+  left: 7.5rem;
+  min-width: 5.5rem;
+  padding: 0 10px;
+  text-align: right;
+  font-weight: bold;
+  font-size: 1.05rem;
+  background: #eef5fc;
+  border-right: 2px solid var(--header-bg);
+}
+
+.time-grid thead .name-col,
+.time-grid thead .avg-col {
+  z-index: 3;
+  background: #f0f3f6;
+  font-size: 0.8rem;
+}
+
+.lane-badge {
+  display: inline-block;
+  width: 1.5em;
+  margin-right: 6px;
+  border-radius: 4px;
+  background: var(--header-bg);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+.lane-badge.none {
+  background: #e3e8ee;
+  color: var(--muted);
+}
+
+.time-grid tbody tr:hover .name-col {
+  background: #f6f8fa;
+}
+
+.stat-col {
+  min-width: 4.5em;
+  padding: 0 8px !important;
+  text-align: right;
+  background: #f6f8fa;
+  color: var(--muted);
+}
+
+/* ===== 1マス ===== */
+.time-cell {
+  min-width: 4.8em;
+  vertical-align: top;
+}
+
+.time-cell.highlight {
+  background: #f5f9fe;
+}
+
+.time-cell input {
+  display: block;
+  width: 100%;
+  padding: 6px 6px 0;
+  border: none;
+  background: transparent;
+  font-size: 1rem;
+  font-family: inherit;
+  text-align: right;
+  outline: none;
+}
+
+.time-cell:focus-within {
+  box-shadow: inset 0 0 0 2px var(--header-bg);
+  background: #fff;
+}
+
+.time-cell.invalid {
+  box-shadow: inset 0 0 0 2px var(--slower) !important;
+  background: #fdecea;
+}
+
+.time-cell.missing input {
+  color: var(--muted);
+  text-align: center;
+}
+
+.time-cell .diff {
+  height: 1.3em;
+  padding: 0 6px 3px;
+  font-size: 0.75rem;
+  text-align: right;
+}
+
+.diff.slower {
+  color: var(--slower);
+}
+
+.diff.faster {
+  color: var(--faster);
+}
+
+.diff.same {
+  color: var(--muted);
+}
+
+/* ===== 操作説明 ===== */
+.help {
+  margin: 12px 0 0;
+  padding-left: 1.2em;
+  line-height: 1.8;
+}
+
+.help code,
+.help kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fff;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.85em;
+}

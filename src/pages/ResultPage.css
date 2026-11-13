@@ -1,0 +1,147 @@
+.result-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.result-page .session-head {
+  margin-bottom: 0;
+}
+
+.result-page .card h4 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.result-page .card > .hint {
+  margin: 0 0 10px;
+}
+
+.status-label {
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: #fff3c4;
+  color: #8a6d00;
+  font-size: 0.8rem;
+}
+
+/* ===== 比較表 ===== */
+.table-scroll {
+  overflow-x: auto;
+}
+
+.compare-table {
+  border-collapse: collapse;
+  min-width: 100%;
+}
+
+.compare-table th,
+.compare-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.compare-table thead th {
+  background: #f0f3f6;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: normal;
+}
+
+.compare-table tbody th {
+  font-weight: normal;
+}
+
+.compare-table td.current {
+  font-size: 1.1rem;
+  font-weight: bold;
+  text-align: right;
+}
+
+.compare-table td.ref {
+  text-align: right;
+  color: var(--muted);
+}
+
+.compare-table .ref-sub {
+  display: block;
+  font-size: 0.75rem;
+}
+
+.cmp {
+  font-weight: bold;
+}
+
+.cmp .num {
+  font-size: 1.05rem;
+}
+
+.cmp-label {
+  font-size: 0.8rem;
+}
+
+.cmp.faster {
+  color: var(--faster);
+}
+
+.cmp.slower {
+  color: var(--slower);
+}
+
+.cmp.same {
+  color: var(--muted);
+}
+
+.new-best {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--faster);
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+/* ===== 結果表 ===== */
+.result-grid .time-cell .value {
+  padding: 6px 6px 0;
+  font-size: 1rem;
+  text-align: right;
+}
+
+.result-grid .time-cell.missing .value {
+  color: var(--muted);
+  text-align: center;
+}
+
+.result-grid .time-cell.best,
+.swatch.best {
+  background: #e3effc;
+}
+
+.result-grid .time-cell.worst,
+.swatch.worst {
+  background: #fdecea;
+}
+
+.result-page .grid-scroll {
+  max-height: none;
+}
+
+.legend {
+  margin: 8px 0 0;
+}
+
+.swatch {
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  margin: 0 2px 0 8px;
+  border: 1px solid var(--border);
+  vertical-align: -0.1em;
+}
+
+.swatch:first-child {
+  margin-left: 0;
+}

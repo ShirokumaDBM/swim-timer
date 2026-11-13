@@ -1,0 +1,129 @@
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px 20px;
+}
+
+.fields > label,
+.fields > .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.fields label.wide {
+  grid-column: 1 / -1;
+}
+
+.fields input,
+.fields select {
+  color: var(--fg);
+}
+
+.short {
+  width: 7em;
+}
+
+.with-presets {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.page button.preset {
+  padding: 6px 10px;
+}
+
+.page button.preset.selected {
+  border-color: var(--header-bg);
+  background: #e6f0fa;
+  color: var(--header-bg);
+  font-weight: bold;
+}
+
+.participants,
+.lanes {
+  margin: 0;
+  padding: 12px 16px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.participants legend,
+.lanes legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+  font-size: 0.9rem;
+}
+
+.page .participants legend button,
+.page .lanes legend button {
+  padding: 2px 8px;
+  font-size: 0.8rem;
+}
+
+.swimmer-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.swimmer-checks label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.swimmer-checks label.checked {
+  border-color: var(--header-bg);
+  background: #e6f0fa;
+}
+
+.swimmer-checks .grade {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.lane-rows {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+  gap: 6px 24px;
+}
+
+.lane-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lane-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page button.lane-btn {
+  width: 2.2em;
+  padding: 4px 0;
+  text-align: center;
+}
+
+.page button.lane-btn.selected {
+  border-color: var(--header-bg);
+  background: var(--header-bg);
+  color: #fff;
+  font-weight: bold;
+}

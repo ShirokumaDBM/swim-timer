@@ -1,0 +1,74 @@
+.swimmers-page {
+  max-width: 820px;
+}
+
+.add-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.add-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.add-form button {
+  padding: 7px 20px;
+}
+
+.grade-input {
+  width: 7em;
+}
+
+.list-header {
+  margin: 20px 0 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.swimmers-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid var(--border);
+}
+
+.swimmers-table th,
+.swimmers-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.swimmers-table th {
+  background: #f0f3f6;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.swimmers-table .actions > div {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.confirm-text {
+  font-size: 0.85rem;
+  color: var(--slower);
+}
+
+.edit-form {
+  display: flex;
+  gap: 8px;
+}

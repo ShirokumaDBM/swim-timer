@@ -1,0 +1,51 @@
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 24px;
+  background: var(--header-bg);
+  color: var(--header-fg);
+}
+
+.app-header h1 {
+  font-size: 1.25rem;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.app-header nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.app-header nav button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.app-header nav button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.app-header nav button.active {
+  background: rgba(255, 255, 255, 0.25);
+  font-weight: bold;
+}
+
+.app-main {
+  flex: 1;
+  padding: 24px;
+}
+
