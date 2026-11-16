@@ -1,7 +1,7 @@
 import { db } from '../db'
-import { compareChronological, type SessionSummary } from '../domain/compare'
+import { compareChronological, type SessionDetail, type SessionSummary } from '../domain/compare'
 import type { HistoryRow } from '../domain/history'
-import type { Centis, Session, TimeRecord } from '../domain/types'
+import type { Centis, RepTimes, Session, TimeRecord } from '../domain/types'
 
 /** 測定を終了（確定）する。終了後もタイムの修正はできる */
 export async function finishSession(id: number): Promise<void> {
@@ -43,6 +43,47 @@ export async function loadHistory(): Promise<HistoryRow[]> {
       const list = bySession.get(session.id!) ?? []
       return { session, timeCount: list.length, averages: averagesBySwimmer(list) }
     })
+}
+
+/** 距離・本数が同じ、終了した測定の1本ごとのタイム（比較・推移グラフ用。並び順は問わない） */
+export async function loadSessionDetails(distance: number, reps: number): Promise<SessionDetail[]> {
+  const sessions = await db.sessions
+    .where('[distance+reps]')
+    .equals([distance, reps])
+    .filter((s) => s.status === 'finished')
+    .toArray()
+  if (sessions.length === 0) return []
+  const records = await db.times
+    .where('sessionId')
+    .anyOf(sessions.map((s) => s.id!))
+    .toArray()
+  const bySession = new Map<number, Map<number, RepTimes>>()
+  for (const t of records) {
+    if (t.rep < 1 || t.rep > reps) continue
+    const times = bySession.get(t.sessionId) ?? new Map<number, RepTimes>()
+    const list = times.get(t.swimmerId) ?? Array.from<Centis | null>({ length: reps }).fill(null)
+    list[t.rep - 1] = t.centis
+    times.set(t.swimmerId, list)
+    bySession.set(t.sessionId, times)
+  }
+  return sessions.map((session) => ({ session, times: bySession.get(session.id!) ?? new Map() }))
+}
+
+/** すべての測定（入力中も含む）の1本ごとのタイム（日ごとの推移グラフ用。並び順は問わない） */
+export async function loadAllDetails(): Promise<SessionDetail[]> {
+  const [sessions, records] = await Promise.all([db.sessions.toArray(), db.times.toArray()])
+  const repsOf = new Map(sessions.map((s) => [s.id!, s.reps]))
+  const bySession = new Map<number, Map<number, RepTimes>>()
+  for (const t of records) {
+    const reps = repsOf.get(t.sessionId)
+    if (reps == null || t.rep < 1 || t.rep > reps) continue
+    const times = bySession.get(t.sessionId) ?? new Map<number, RepTimes>()
+    const list = times.get(t.swimmerId) ?? Array.from<Centis | null>({ length: reps }).fill(null)
+    list[t.rep - 1] = t.centis
+    times.set(t.swimmerId, list)
+    bySession.set(t.sessionId, times)
+  }
+  return sessions.map((session) => ({ session, times: bySession.get(session.id!) ?? new Map() }))
 }
 
 /** 距離・本数が同じ、終了した測定の平均タイム（比較用。並び順は問わない） */

@@ -56,6 +56,67 @@
   align-self: center;
 }
 
+/* ===== 日ごとの推移：比べる測定の一覧 ===== */
+.trend-sessions {
+  margin: 0;
+  padding: 10px 14px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.trend-sessions legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+  font-size: 0.9rem;
+}
+
+.page .trend-sessions legend button {
+  padding: 2px 8px;
+  font-size: 0.8rem;
+}
+
+.trend-distance {
+  margin-bottom: 8px;
+}
+
+.trend-session-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 9.5rem;
+  overflow-y: auto;
+}
+
+.trend-session-list label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.trend-session-list label.checked {
+  border-color: var(--header-bg);
+  background: #e6f0fa;
+}
+
+.trend-session-list .reps {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.metric-switch {
+  flex-wrap: wrap;
+}
+
 /* ===== 重ねグラフ ===== */
 .legend-dot {
   display: inline-block;

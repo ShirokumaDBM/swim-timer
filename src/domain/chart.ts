@@ -20,14 +20,19 @@ export function repSeries(times: RepTimes): RepPoint[] {
  * 縦軸の範囲（1/100秒）。上下に少し余白を取り、0.5秒刻みに揃える。
  * 記録がなければ null。
  */
-export function timeDomain(times: RepTimes, step: Centis = 50): [Centis, Centis] | null {
+export function timeDomain(
+  times: RepTimes,
+  step: Centis = 50,
+  /** マイナスの値も取りうる（落ち幅など）。false なら下限は 0 で止める */
+  allowNegative = false,
+): [Centis, Centis] | null {
   const xs = times.filter((t): t is Centis => t != null)
   if (xs.length === 0) return null
   const min = Math.min(...xs)
   const max = Math.max(...xs)
   const lo = Math.floor((min - step / 2) / step) * step
   const hi = Math.ceil((max + step / 2) / step) * step
-  return [Math.max(0, lo), hi]
+  return [allowNegative ? lo : Math.max(0, lo), hi]
 }
 
 /** 重ねて比べられる人数（色の数） */

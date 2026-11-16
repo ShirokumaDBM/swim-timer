@@ -52,4 +52,9 @@ describe('timeDomain', () => {
   it('記録がなければ null', () => {
     expect(timeDomain([null, null])).toBeNull()
   })
+
+  it('ふつうは 0 より下に広げない。落ち幅などマイナスを取りうる値では広げる', () => {
+    expect(timeDomain([10, 60])).toEqual([0, 100])
+    expect(timeDomain([-30, 60], 50, true)).toEqual([-100, 100])
+  })
 })

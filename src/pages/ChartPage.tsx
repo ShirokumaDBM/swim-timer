@@ -24,6 +24,7 @@ import { listTimes } from '../repo/times'
 import { COLORS, repTicks, SERIES_COLORS } from './chartTheme'
 import { CompareChart } from './CompareChart'
 import { loadLaneOrder } from './settings'
+import { TrendView } from './TrendView'
 import './ChartPage.css'
 
 
@@ -40,7 +41,7 @@ export function ChartPage({ initialSessionId, initialSwimmerId }: Props) {
   const [sessionId, setSessionId] = useState(initialSessionId)
   const [swimmerId, setSwimmerId] = useState(initialSwimmerId)
   /** 1人を詳しく見る／重ねて比べる */
-  const [mode, setMode] = useState<'single' | 'compare'>('single')
+  const [mode, setMode] = useState<'single' | 'compare' | 'trend'>('single')
   /** 重ねて比べる選手と色（null = まだ選んでいない → 先頭から8人） */
   const [entries, setEntries] = useState<SlotEntry[] | null>(null)
 
@@ -95,16 +96,21 @@ export function ChartPage({ initialSessionId, initialSwimmerId }: Props) {
     <div className="page chart-page">
       <div className="chart-controls">
         <div className="control-row">
-          <label>
-            測定
-            <select value={session.id} onChange={(e) => changeSession(Number(e.target.value))}>
-              {sessions.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {sessionTitle(s)}（{s.swimmerIds.length}人）{s.status === 'in_progress' ? '・入力中' : ''}
-                </option>
-              ))}
-            </select>
-          </label>
+          {mode === 'trend' ? (
+            // 日ごとの推移では、比べる測定を下の一覧から選ぶ
+            <span className="hint">複数の測定の平均・ベスト・ばらつきなどを、日付順に並べて比べます。</span>
+          ) : (
+            <label>
+              測定
+              <select value={session.id} onChange={(e) => changeSession(Number(e.target.value))}>
+                {sessions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {sessionTitle(s)}（{s.swimmerIds.length}人）{s.status === 'in_progress' ? '・入力中' : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <div className="order-switch" role="radiogroup" aria-label="表示">
             <button
               role="radio"
@@ -122,9 +128,17 @@ export function ChartPage({ initialSessionId, initialSwimmerId }: Props) {
             >
               重ねて比べる
             </button>
+            <button
+              role="radio"
+              aria-checked={mode === 'trend'}
+              className={mode === 'trend' ? 'preset selected' : 'preset'}
+              onClick={() => setMode('trend')}
+            >
+              日ごとの推移
+            </button>
           </div>
         </div>
-        {mode === 'single' ? (
+        {mode === 'trend' ? null : mode === 'single' ? (
           <div className="swimmer-picker" role="radiogroup" aria-label="選手">
             {ids.map((id) => (
               <button
@@ -169,7 +183,9 @@ export function ChartPage({ initialSessionId, initialSwimmerId }: Props) {
         )}
       </div>
 
-      {mode === 'compare' ? (
+      {mode === 'trend' ? (
+        <TrendView initialDistance={session.distance} />
+      ) : mode === 'compare' ? (
         <section className="card chart-card">
           <h3>
             重ねて比べる <span className="hint">選んだ選手の1本ごとのタイム</span>

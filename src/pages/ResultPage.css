@@ -103,6 +103,63 @@
   font-size: 0.75rem;
 }
 
+/* ===== 期間を選んだ比較 ===== */
+.scope-switch {
+  margin-bottom: 8px;
+}
+
+.page .scope-switch button.preset:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.result-page .card h4.sub {
+  margin-top: 20px;
+}
+
+.compare-table th.right {
+  text-align: right;
+}
+
+.compare-table .nowrap {
+  white-space: nowrap;
+}
+
+.metrics-table td.metric {
+  text-align: right;
+  vertical-align: top;
+}
+
+.metrics-table .m-cur {
+  font-size: 1.05rem;
+}
+
+.metrics-table td.metric:first-of-type .m-cur {
+  font-weight: bold;
+}
+
+.metrics-table .m-diff {
+  font-size: 0.85rem;
+}
+
+.metrics-table .m-diff .num {
+  font-size: inherit;
+}
+
+.metrics-table .m-ref {
+  color: var(--muted);
+  font-weight: normal;
+}
+
+.metrics-table .new-best {
+  margin: 0 6px 0 0;
+  vertical-align: 2px;
+}
+
+.compare-card .swimmer-picker {
+  margin-bottom: 6px;
+}
+
 /* ===== 結果表 ===== */
 .result-grid .time-cell .value {
   padding: 6px 6px 0;

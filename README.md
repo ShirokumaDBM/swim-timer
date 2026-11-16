@@ -3,7 +3,7 @@
 水泳部の「50m × N本」のタイム測定を補助するアプリです。
 タイムを入力すると、各選手の平均と前の本との差をその場で計算し、終了後は結果表・過去との比較・グラフ・履歴を見られます。
 
-**公開版：** `https://<ユーザー名>.github.io/<リポジトリ名>/`（GitHub Pages）
+**公開版：** https://shirokumadbm.github.io/swim-timer/ （GitHub Pages）
 
 ## 使い方
 

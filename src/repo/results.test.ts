@@ -2,7 +2,15 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from '../db'
 import { compareSwimmerAverage, findComparableSessions } from '../domain/compare'
-import { averagesBySwimmer, finishSession, listFinishedSessions, loadHistory, loadSummaries } from './results'
+import {
+  averagesBySwimmer,
+  finishSession,
+  listFinishedSessions,
+  loadAllDetails,
+  loadHistory,
+  loadSessionDetails,
+  loadSummaries,
+} from './results'
 import { createSession, getSession } from './sessions'
 import { addSwimmer } from './swimmers'
 import { saveCell } from './times'
@@ -67,6 +75,38 @@ describe('loadSummaries', () => {
     const cur = summaries.find((x) => x.session.id === s2)!.averages.get(a)!
     const r = compareSwimmerAverage(a, cur, comparable)
     expect(r.previous).toMatchObject({ date: '2026-11-01', average: 3850, diff: -42 })
+  })
+})
+
+describe('loadSessionDetails', () => {
+  it('同じ条件の終了した測定を、選手ごとの1本ずつのタイムで返す', async () => {
+    const s1 = await session('2026-11-01', 3, { [a]: [3800, null, 3900], [b]: [4000] })
+    await session('2026-11-02', 4, { [a]: [3000] }) // 本数が違う
+    await session('2026-11-03', 3, { [a]: [3000] }, false) // 入力中
+    const list = await loadSessionDetails(50, 3)
+    expect(list.map((d) => d.session.id)).toEqual([s1])
+    expect(list[0].times).toEqual(
+      new Map([
+        [a, [3800, null, 3900]],
+        [b, [4000, null, null]],
+      ]),
+    )
+  })
+})
+
+describe('loadAllDetails', () => {
+  it('本数の違う測定も入力中の測定も、すべて返す', async () => {
+    const s1 = await session('2026-11-01', 3, { [a]: [3800, null, 3900] })
+    const s2 = await session('2026-11-02', 2, { [a]: [3000], [b]: [4000, 4100] }, false)
+    const list = await loadAllDetails()
+    expect(list.map((d) => d.session.id).sort()).toEqual([s1, s2].sort())
+    expect(list.find((d) => d.session.id === s1)!.times).toEqual(new Map([[a, [3800, null, 3900]]]))
+    expect(list.find((d) => d.session.id === s2)!.times).toEqual(
+      new Map([
+        [a, [3000, null]],
+        [b, [4000, 4100]],
+      ]),
+    )
   })
 })
 

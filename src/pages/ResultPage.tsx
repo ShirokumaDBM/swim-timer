@@ -1,18 +1,17 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import type { ReactNode } from 'react'
 import { db } from '../db'
-import { compareSwimmerAverage, findComparableSessions, type AverageComparison } from '../domain/compare'
+import { findComparableSessions, type SessionDetail } from '../domain/compare'
 import { resultCsv, resultCsvFileName } from '../domain/csv'
-import { formatDate } from '../domain/date'
 import { buildGrid, toRepTimes } from '../domain/grid'
 import { hasLanes, laneRowOrder } from '../domain/lanes'
-import { sessionMenu, sessionTitle } from '../domain/sessionLabel'
+import { sessionTitle } from '../domain/sessionLabel'
 import { swimmerStats } from '../domain/stats'
 import { formatDiff, formatTime } from '../domain/time'
 import type { Centis, Session, SessionStatus, TimeRecord } from '../domain/types'
-import { listFinishedSessions, loadSummaries } from '../repo/results'
+import { listFinishedSessions, loadSessionDetails } from '../repo/results'
 import { getSession } from '../repo/sessions'
 import { listTimes } from '../repo/times'
+import { ResultCompare } from './ResultCompare'
 import { loadLaneOrder } from './settings'
 import './InputPage.css'
 import './ResultPage.css'
@@ -31,12 +30,12 @@ export function ResultPage({ sessionId, onEditTimes, onShowChart, onGoInput }: P
     const session =
       (sessionId != null ? await getSession(sessionId) : undefined) ?? (await listFinishedSessions())[0]
     if (!session) return { session: undefined }
-    const [swimmers, records, summaries] = await Promise.all([
+    const [swimmers, records, details] = await Promise.all([
       db.swimmers.bulkGet(session.swimmerIds),
       listTimes(session.id!),
-      loadSummaries(session.distance, session.reps),
+      loadSessionDetails(session.distance, session.reps),
     ])
-    const comparable = findComparableSessions(session, summaries)
+    const comparable = findComparableSessions(session, details)
     return { session, names: swimmers.map((s) => s?.name ?? '（削除された選手）'), records, comparable }
   }, [sessionId])
 
@@ -67,7 +66,7 @@ interface ResultProps {
   session: Session
   allNames: string[]
   records: TimeRecord[]
-  comparable: ReturnType<typeof findComparableSessions>
+  comparable: SessionDetail[]
   onEditTimes: () => void
   onShowChart: () => void
 }
@@ -83,11 +82,6 @@ function Result({ session, allNames, records, comparable, onEditTimes, onShowCha
 
   const grid = buildGrid(swimmerIds, cols, records)
   const stats = grid.map((row) => swimmerStats(toRepTimes(row)))
-  const comparisons = swimmerIds.map((id, r) => {
-    const avg = stats[r].average
-    // 表示と差が食い違わないよう、1/100秒に丸めてから比べる
-    return avg == null ? null : compareSwimmerAverage(id, Math.round(avg), comparable)
-  })
   const repNumbers = Array.from({ length: cols }, (_, i) => i + 1)
 
   function downloadCsv() {
@@ -100,8 +94,6 @@ function Result({ session, allNames, records, comparable, onEditTimes, onShowCha
     a.click()
     URL.revokeObjectURL(url)
   }
-  // 比較の条件は距離・本数（種目は問わない）
-  const condition = sessionMenu({ distance: session.distance, reps: session.reps })
 
   const nameCell = (r: number) => (
     <th className="name-col">
@@ -131,39 +123,14 @@ function Result({ session, allNames, records, comparable, onEditTimes, onShowCha
         </span>
       </div>
 
-      <section className="card compare-card">
-        <h4>過去との比較（平均タイム）</h4>
-        {comparable.length === 0 ? (
-          <p className="hint">
-            同じ条件（{condition}）の終了した過去の測定がまだないため、比較は次回から表示されます。
-          </p>
-        ) : (
-          <>
-            <p className="hint">
-              同じ条件（{condition}）の過去の測定 {comparable.length}回（前回：{formatDate(comparable[0].session.date)}
-              ）と比べています。マイナスは速くなったことを表します。
-            </p>
-            <div className="table-scroll">
-              <table className="compare-table">
-                <thead>
-                  <tr>
-                    <th>選手</th>
-                    <th>今回の平均</th>
-                    <th colSpan={2}>前回との差</th>
-                    <th colSpan={2}>自己ベスト平均との差</th>
-                    <th colSpan={2}>直近3回の平均との差</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {swimmerIds.map((id, r) => (
-                    <CompareRow key={id} name={nameCell(r)} cmp={comparisons[r]} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </section>
+      <ResultCompare
+        session={session}
+        swimmerIds={swimmerIds}
+        names={names}
+        grid={grid}
+        nameCell={nameCell}
+        comparable={comparable}
+      />
 
       <section className="card">
         <h4>結果表</h4>
@@ -234,62 +201,3 @@ function diffClass(d: Centis | null): string {
   return r > 0 ? 'slower' : r < 0 ? 'faster' : 'same'
 }
 
-/** 改善・悪化を色と矢印で表示する */
-function DiffBadge({ diff }: { diff: Centis }) {
-  const r = Math.round(diff)
-  const [cls, label] = r < 0 ? ['faster', '▲ 改善'] : r > 0 ? ['slower', '▼ 悪化'] : ['same', '変化なし']
-  return (
-    <span className={`cmp ${cls}`}>
-      <span className="num">{formatDiff(r)}</span> <span className="cmp-label">{label}</span>
-    </span>
-  )
-}
-
-function CompareRow({ name, cmp }: { name: ReactNode; cmp: AverageComparison | null }) {
-  if (!cmp) {
-    return (
-      <tr>
-        {name}
-        <td colSpan={7} className="hint">
-          記録なし
-        </td>
-      </tr>
-    )
-  }
-  return (
-    <tr>
-      {name}
-      <td className="num current">{formatTime(cmp.current)}</td>
-      {cmp.previous ? (
-        <>
-          <td className="ref">
-            <span className="num">{formatTime(cmp.previous.average)}</span>
-            <span className="ref-sub">{formatDate(cmp.previous.date).slice(5)}</span>
-          </td>
-          <td>
-            <DiffBadge diff={cmp.previous.diff} />
-          </td>
-          <td className="ref">
-            <span className="num">{formatTime(cmp.best!.average)}</span>
-            <span className="ref-sub">{formatDate(cmp.best!.date).slice(5)}</span>
-          </td>
-          <td>
-            <DiffBadge diff={cmp.best!.diff} />
-            {Math.round(cmp.best!.diff) < 0 && <span className="new-best">ベスト更新</span>}
-          </td>
-          <td className="ref">
-            <span className="num">{formatTime(cmp.recent!.average)}</span>
-            <span className="ref-sub">{cmp.recent!.count}回の平均</span>
-          </td>
-          <td>
-            <DiffBadge diff={cmp.recent!.diff} />
-          </td>
-        </>
-      ) : (
-        <td colSpan={6} className="hint">
-          この条件では初めての測定です
-        </td>
-      )}
-    </tr>
-  )
-}

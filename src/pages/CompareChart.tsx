@@ -6,6 +6,8 @@ import { toRepTimes } from '../domain/grid'
 import { swimmerStats } from '../domain/stats'
 import { formatTime } from '../domain/time'
 import { COLORS, repTicks, SERIES_COLORS } from './chartTheme'
+// 凡例・ツールチップなどの見た目（結果画面からもこの部品を使うので、ここで読み込む）
+import './ChartPage.css'
 
 export interface CompareSeries {
   id: number
@@ -13,6 +15,15 @@ export interface CompareSeries {
   /** 色番号（SERIES_COLORS の位置） */
   slot: number
   row: CellValue[]
+  /** 値がない本の表示（未指定なら「休み」「未入力」。平均の線など、休みとは言えないときに指定） */
+  emptyLabel?: string
+}
+
+interface Props {
+  series: CompareSeries[]
+  reps: number
+  /** 下に平均・ベストなどの表を出す（既定は出す） */
+  showSummary?: boolean
 }
 
 /** 名前を線の端に直接書くのは4人まで（それ以上は重なるので凡例と表で示す） */
@@ -22,7 +33,7 @@ type Row = { rep: number } & Record<string, number | null>
 
 const key = (id: number) => `s${id}`
 
-export function CompareChart({ series, reps }: { series: CompareSeries[]; reps: number }) {
+export function CompareChart({ series, reps, showSummary = true }: Props) {
   const data: Row[] = Array.from({ length: reps }, (_, i) => {
     const row: Row = { rep: i + 1 }
     for (const s of series) row[key(s.id)] = s.row[i] ?? null
@@ -115,6 +126,7 @@ export function CompareChart({ series, reps }: { series: CompareSeries[]; reps: 
       </div>
       <p className="hint chart-note">上に行くほど遅いタイムです。線が途切れている本は休んだ本・未入力の本です。</p>
 
+      {showSummary && (
       <div className="table-scroll">
         <table className="compare-summary">
           <thead>
@@ -149,6 +161,7 @@ export function CompareChart({ series, reps }: { series: CompareSeries[]; reps: 
           </tbody>
         </table>
       </div>
+      )}
     </>
   )
 }
@@ -174,7 +187,9 @@ function CompareTooltip({
                   <span className="legend-dot" style={{ background: SERIES_COLORS[s.slot] }} />
                   {s.name}
                 </td>
-                <td className="num">{v === undefined ? '未入力' : v === null ? '休み' : formatTime(v)}</td>
+                <td className="num">
+                  {v != null ? formatTime(v) : (s.emptyLabel ?? (v === undefined ? '未入力' : '休み'))}
+                </td>
               </tr>
             )
           })}
