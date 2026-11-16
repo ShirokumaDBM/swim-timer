@@ -22,6 +22,11 @@ body {
   margin: 0;
 }
 
+/* hidden 属性は、display を指定した部品でも必ず隠す */
+[hidden] {
+  display: none !important;
+}
+
 /* ===== 各画面で共通の部品 ===== */
 .page input,
 .page select,
@@ -95,6 +100,23 @@ body {
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 8px;
+}
+
+/* ===== スマホ（幅の狭い画面） ===== */
+@media (max-width: 720px) {
+  /* 指で押しやすい大きさにする */
+  .page button {
+    min-height: 40px;
+  }
+
+  .page select {
+    min-height: 40px;
+    max-width: 100%;
+  }
+
+  .card {
+    padding: 12px;
+  }
 }
 
 /* タイムの数字の幅をそろえる */

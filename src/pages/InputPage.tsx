@@ -22,7 +22,19 @@ import { getSession, listInProgressSessions } from '../repo/sessions'
 import { finishSession } from '../repo/results'
 import { listTimes, saveCell } from '../repo/times'
 import { SessionEditPanel } from './SessionEditPanel'
-import { LANE_ORDER_LABELS, loadInputOrder, loadLaneOrder, saveInputOrder, saveLaneOrder } from './settings'
+import { MobileEntry } from './MobileEntry'
+import {
+  LANE_ORDER_LABELS,
+  loadAutoNext,
+  loadInputLayout,
+  loadInputOrder,
+  loadLaneOrder,
+  saveAutoNext,
+  saveInputLayout,
+  saveInputOrder,
+  saveLaneOrder,
+  type InputLayout,
+} from './settings'
 import { TimeCell, type NavKey } from './TimeCell'
 import './InputPage.css'
 
@@ -97,6 +109,14 @@ function InputGrid({ session, allNames, records, onEdit, editPanel, onShowResult
   const cols = session.reps
   const [order, setOrder] = useState<InputOrder>(loadInputOrder)
   const [laneOrder, setLaneOrder] = useState<LaneOrder>(loadLaneOrder)
+  /** 入力画面の形：表（PC向け）／1本ずつ（スマホ向け）。画面が狭いと最初から1本ずつ */
+  const [layout, setLayout] = useState<InputLayout>(loadInputLayout)
+  const [autoNext, setAutoNext] = useState(loadAutoNext)
+
+  function changeLayout(next: InputLayout) {
+    setLayout(next)
+    saveInputLayout(next)
+  }
   const [message, setMessage] = useState<string | null>(null)
   /** 未入力のマスがあるときの「測定終了」の確認中 */
   const [confirmFinish, setConfirmFinish] = useState(false)
@@ -248,8 +268,28 @@ function InputGrid({ session, allNames, records, onEdit, editPanel, onShowResult
           </span>
           <span className="progress-bar">
             <span style={{ width: `${(filledCount / (rows * cols)) * 100}%` }} />
-          </span>        </div>
-        <div className="order-switch" role="radiogroup" aria-label="Enterで進む向き">
+          </span>
+        </div>
+        <div className="order-switch" role="radiogroup" aria-label="入力画面の形">
+          <span className="hint">入力の形：</span>
+          <button
+            role="radio"
+            aria-checked={layout === 'mobile'}
+            className={layout === 'mobile' ? 'preset selected' : 'preset'}
+            onClick={() => changeLayout('mobile')}
+          >
+            1本ずつ（スマホ向け）
+          </button>
+          <button
+            role="radio"
+            aria-checked={layout === 'grid'}
+            className={layout === 'grid' ? 'preset selected' : 'preset'}
+            onClick={() => changeLayout('grid')}
+          >
+            表（PC向け）
+          </button>
+        </div>
+        <div className="order-switch" role="radiogroup" aria-label="Enterで進む向き" hidden={layout === 'mobile'}>
           <span className="hint">Enter で進む向き：</span>
           <button
             role="radio"
@@ -291,6 +331,28 @@ function InputGrid({ session, allNames, records, onEdit, editPanel, onShowResult
           {message}
         </p>
       )}
+      {layout === 'mobile' ? (
+        <MobileEntry
+          grid={grid}
+          stats={stats}
+          names={names}
+          lanes={withLanes ? lanes : undefined}
+          reps={cols}
+          initialRep={done}
+          // 読めない入力の案内は、その選手の欄のすぐ下に出す（上のメッセージは出さない）
+          onCommit={(r, c, text) => {
+            const ok = onCommit(r, c, text)
+            if (!ok) setMessage(null)
+            return ok
+          }}
+          autoNext={autoNext}
+          onChangeAutoNext={(on) => {
+            setAutoNext(on)
+            saveAutoNext(on)
+          }}
+        />
+      ) : (
+      <>
       <div className="grid-scroll">
         <table className="time-grid">
           <thead>
@@ -359,6 +421,8 @@ function InputGrid({ session, allNames, records, onEdit, editPanel, onShowResult
         </li>
         <li>入力した内容はその場で自動保存されます。</li>
       </ul>
+      </>
+      )}
     </div>
   )
 }

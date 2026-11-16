@@ -40,6 +40,35 @@ export function saveLaneOrder(order: LaneOrder) {
   saveSetting(LANE_ORDER_KEY, order)
 }
 
+/** 入力画面の形：表（PC向け）／1本ずつ（スマホ向け） */
+export type InputLayout = 'grid' | 'mobile'
+const LAYOUT_KEY = 'swim-timer:inputLayout'
+const AUTO_NEXT_KEY = 'swim-timer:autoNext'
+
+/** 手動で選んだ形があればそれを、なければ画面の幅で決める（狭ければ1本ずつ） */
+export function loadInputLayout(): InputLayout {
+  const v = loadSetting(LAYOUT_KEY)
+  if (v === 'grid' || v === 'mobile') return v
+  try {
+    return window.matchMedia('(max-width: 720px)').matches ? 'mobile' : 'grid'
+  } catch {
+    return 'grid'
+  }
+}
+
+export function saveInputLayout(layout: InputLayout) {
+  saveSetting(LAYOUT_KEY, layout)
+}
+
+/** スマホ入力：4桁入力したら自動で次の選手へ（既定は切） */
+export function loadAutoNext(): boolean {
+  return loadSetting(AUTO_NEXT_KEY) === 'on'
+}
+
+export function saveAutoNext(on: boolean) {
+  saveSetting(AUTO_NEXT_KEY, on ? 'on' : 'off')
+}
+
 export const LANE_ORDER_LABELS: { value: LaneOrder; label: string }[] = [
   { value: 'asc', label: 'レーン昇順（1→5）' },
   { value: 'desc', label: 'レーン降順（5→1）' },

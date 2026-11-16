@@ -1,0 +1,164 @@
+.mobile-entry {
+  max-width: 560px;
+}
+
+/* ===== 何本目かの切り替え ===== */
+.rep-nav {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 6px 0;
+  background: var(--bg);
+}
+
+.page .rep-nav button {
+  width: 52px;
+  height: 48px;
+  font-size: 1.1rem;
+}
+
+.rep-title {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+}
+
+.rep-title strong {
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.rep-title .hint {
+  margin-left: 6px;
+}
+
+/* ===== 選手ごとの入力 ===== */
+.entry-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.entry-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'who entry'
+    'info entry';
+  align-items: center;
+  gap: 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.entry-row.active {
+  border-color: var(--header-bg);
+  box-shadow: 0 0 0 2px #cfe2f7;
+}
+
+.entry-row.invalid {
+  border-color: var(--slower);
+}
+
+.entry-row .who {
+  grid-area: who;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  font-weight: bold;
+}
+
+.entry-row .name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry-row .info {
+  grid-area: info;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 10px;
+  min-height: 1.2em;
+}
+
+.entry-row .entry {
+  grid-area: entry;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 文字を 16px 以上にして、iPhone で入力時に画面が拡大されないようにする */
+.page .entry-row input {
+  width: 5.4em;
+  height: 48px;
+  font-size: 1.35rem;
+  text-align: right;
+}
+
+.page .entry-row input.missing {
+  color: var(--muted);
+  text-align: center;
+}
+
+.page .entry-row .entry button {
+  width: 3.4em;
+  height: 48px;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.page .entry-row .entry button.rest {
+  color: var(--muted);
+}
+
+/* 入力していない行の「次へ」は見えなくするだけで、場所は取っておく（行の形を変えない） */
+.page .entry-row .entry button.next.idle {
+  visibility: hidden;
+}
+
+.entry-row .row-error {
+  grid-column: 1 / -1;
+  margin: 6px 0 0;
+  color: var(--slower);
+  font-size: 0.85rem;
+}
+
+/* ===== 下の設定・説明 ===== */
+.entry-foot {
+  margin-top: 12px;
+}
+
+.auto-next {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.page .auto-next input {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+
+.entry-foot code {
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #fff;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.85em;
+}

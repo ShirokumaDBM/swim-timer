@@ -268,3 +268,50 @@
   font-family: ui-monospace, Consolas, monospace;
   font-size: 0.85em;
 }
+
+/* ===== スマホ（幅の狭い画面） ===== */
+@media (max-width: 720px) {
+  .session-head {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+
+  .session-head h3 {
+    font-size: 1.05rem;
+  }
+
+  .session-head .head-actions {
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+
+  .order-switch {
+    flex-wrap: wrap;
+  }
+
+  .progress-bar {
+    width: 90px;
+  }
+}
+
+/* スマホでは表の固定列を名前だけにして、タイムの列を広く見せる */
+@media (max-width: 720px) {
+  .time-grid .name-col {
+    width: 5.2rem;
+    min-width: 5.2rem;
+    max-width: 5.2rem;
+    padding: 0 6px;
+  }
+
+  .time-grid .avg-col {
+    position: static;
+    min-width: 4.6rem;
+    padding: 0 8px;
+  }
+
+  .time-grid thead .avg-col {
+    position: sticky;
+    left: auto;
+  }
+}

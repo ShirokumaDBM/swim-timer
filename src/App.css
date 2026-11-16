@@ -49,3 +49,44 @@
   padding: 24px;
 }
 
+/* ===== スマホ（幅の狭い画面） ===== */
+@media (max-width: 720px) {
+  .app-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 8px 8px 6px;
+  }
+
+  .app-header h1 {
+    padding: 0 6px;
+    font-size: 1.05rem;
+  }
+
+  /* メニューは折り返さず、横にスクロールする */
+  .app-header nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .app-header nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .app-header nav button {
+    flex: none;
+    padding: 10px 12px;
+    white-space: nowrap;
+  }
+
+  .app-main {
+    padding: 12px;
+  }
+
+  .app-main > h2 {
+    margin: 2px 0 10px;
+    font-size: 1.15rem;
+  }
+}
+
