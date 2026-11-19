@@ -10,7 +10,7 @@ import { COLORS, repTicks, SERIES_COLORS } from './chartTheme'
 import './ChartPage.css'
 
 export interface CompareSeries {
-  id: number
+  id: string
   name: string
   /** 色番号（SERIES_COLORS の位置） */
   slot: number
@@ -31,7 +31,7 @@ const MAX_END_LABELS = 4
 
 type Row = { rep: number } & Record<string, number | null>
 
-const key = (id: number) => `s${id}`
+const key = (id: string) => `s${id}`
 
 export function CompareChart({ series, reps, showSummary = true }: Props) {
   const data: Row[] = Array.from({ length: reps }, (_, i) => {

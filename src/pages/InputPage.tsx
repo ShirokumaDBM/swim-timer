@@ -1,6 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { db } from '../db'
 import {
   buildGrid,
   cellValueOf,
@@ -17,11 +16,14 @@ import { sessionTitle } from '../domain/sessionLabel'
 import { completedReps, swimmerStats } from '../domain/stats'
 import { formatTime } from '../domain/time'
 import { hasLanes, laneRowOrder, type LaneOrder } from '../domain/lanes'
-import type { Session, TimeRecord } from '../domain/types'
+import type { Id, Session, TimeRecord } from '../domain/types'
 import { getSession, listInProgressSessions } from '../repo/sessions'
 import { finishSession } from '../repo/results'
+import { getSwimmers } from '../repo/swimmers'
 import { listTimes, saveCell } from '../repo/times'
 import { SessionEditPanel } from './SessionEditPanel'
+import { usePermissions } from '../cloud/permissions'
+import { useMembers } from '../cloud/useMembers'
 import { MobileEntry } from './MobileEntry'
 import {
   LANE_ORDER_LABELS,
@@ -40,15 +42,15 @@ import './InputPage.css'
 
 interface Props {
   /** 未指定なら一番新しい「入力中」の測定を開く */
-  sessionId?: number
+  sessionId?: Id
   onGoNew: () => void
   /** 測定終了後・「結果を見る」で結果画面へ */
-  onShowResult: (sessionId: number) => void
+  onShowResult: (sessionId: Id) => void
 }
 
 export function InputPage({ sessionId, onGoNew, onShowResult }: Props) {
   /** 設定を編集中の測定 */
-  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editingId, setEditingId] = useState<Id | null>(null)
   const data = useLiveQuery(async () => {
     // 指定の測定が削除されていたら、一番新しい入力中の測定を開く
     const session =
@@ -56,8 +58,8 @@ export function InputPage({ sessionId, onGoNew, onShowResult }: Props) {
       (await listInProgressSessions())[0]
     if (!session) return { session: undefined }
     const [swimmers, records] = await Promise.all([
-      db.swimmers.bulkGet(session.swimmerIds),
-      listTimes(session.id!),
+      getSwimmers(session.swimmerIds),
+      listTimes(session.id),
     ])
     return { session, swimmers, records }
   }, [sessionId])
@@ -83,7 +85,7 @@ export function InputPage({ sessionId, onGoNew, onShowResult }: Props) {
       allNames={names}
       records={data.records!}
       onShowResult={onShowResult}
-      onEdit={editingThis ? undefined : () => setEditingId(data.session!.id!)}
+      onEdit={editingThis ? undefined : () => setEditingId(data.session!.id)}
       editPanel={
         editingThis && (
           <SessionEditPanel session={data.session} records={data.records!} onClose={() => setEditingId(null)} />
@@ -101,7 +103,7 @@ interface GridProps {
   /** 「測定情報を編集」（編集中は undefined） */
   onEdit?: () => void
   editPanel?: ReactNode
-  onShowResult: (sessionId: number) => void
+  onShowResult: (sessionId: Id) => void
 }
 
 function InputGrid({ session, allNames, records, onEdit, editPanel, onShowResult }: GridProps) {
@@ -121,6 +123,15 @@ function InputGrid({ session, allNames, records, onEdit, editPanel, onShowResult
   /** 未入力のマスがあるときの「測定終了」の確認中 */
   const [confirmFinish, setConfirmFinish] = useState(false)
   const finished = session.status === 'finished'
+
+  // クラウドと同期している端末では、記録係（入力中の間）と管理者だけが入力できる
+  const perm = usePermissions()
+  const canEdit = perm.canEditSession(session)
+  const readOnlyReason = perm.whyReadOnly(session)
+  const { members } = useMembers(perm.cloud && perm.isAdmin)
+  const recorderNames = (session.recorderIds ?? []).map((id) =>
+    id === perm.userId ? 'あなた' : (members?.find((m) => m.userId === id)?.displayName ?? '（部員）'),
+  )
 
   // 表示する行の並び（レーン順に並べ替えたとき、行番号 r は並べ替え後の位置）
   const withLanes = hasLanes(session.lanes)
@@ -169,7 +180,7 @@ function InputGrid({ session, allNames, records, onEdit, editPanel, onShowResult
     const { grid, session, swimmerIds } = latest.current
     const value = cellValueOf(input)
     if (grid[row][col] === value) return true
-    saveCell(session.id!, swimmerIds[row], col + 1, value).catch((err) =>
+    saveCell(session.id, swimmerIds[row], col + 1, value).catch((err) =>
       setMessage(`保存できませんでした: ${String(err)}`),
     )
     return true
@@ -209,8 +220,8 @@ function InputGrid({ session, allNames, records, onEdit, editPanel, onShowResult
       return
     }
     try {
-      await finishSession(session.id!)
-      onShowResult(session.id!)
+      await finishSession(session.id)
+      onShowResult(session.id)
     } catch (err) {
       setConfirmFinish(false)
       setMessage(`測定を終了できませんでした: ${String(err)}`)
@@ -227,9 +238,9 @@ function InputGrid({ session, allNames, records, onEdit, editPanel, onShowResult
           {session.memo && `・${session.memo}`}
         </span>
         <span className="head-actions">
-          {onEdit && <button onClick={onEdit}>測定情報を編集</button>}
-          {finished ? (
-            <button className="primary" onClick={() => onShowResult(session.id!)}>
+          {onEdit && canEdit && <button onClick={onEdit}>測定情報を編集</button>}
+          {finished || !canEdit ? (
+            <button className="primary" onClick={() => onShowResult(session.id)}>
               結果を見る
             </button>
           ) : (
@@ -242,8 +253,21 @@ function InputGrid({ session, allNames, records, onEdit, editPanel, onShowResult
         </span>
       </div>
 
-      {finished && (
-        <p className="finished-note">この測定は終了済みです。ここで直したタイムは、そのまま結果に反映されます。</p>
+      {readOnlyReason ? (
+        <p className="finished-note read-only-note">
+          <strong>見るだけ</strong>：{readOnlyReason}
+        </p>
+      ) : (
+        finished && <p className="finished-note">この測定は終了済みです。ここで直したタイムは、そのまま結果に反映されます。</p>
+      )}
+      {/* 記録係の名前は名簿から出すので、名簿を読める管理者だけ。部員には自分が記録係かどうかだけ見せる */}
+      {perm.cloud && recorderNames.length > 0 && (perm.isAdmin || recorderNames.includes('あなた')) && (
+        <p className="hint recorders-line">
+          記録係：
+          {perm.isAdmin
+            ? recorderNames.join('、')
+            : `あなた${recorderNames.length > 1 ? `（ほか ${recorderNames.length - 1}人）` : ''}`}
+        </p>
       )}
 
       {confirmFinish && (
@@ -289,7 +313,7 @@ function InputGrid({ session, allNames, records, onEdit, editPanel, onShowResult
             表（PC向け）
           </button>
         </div>
-        <div className="order-switch" role="radiogroup" aria-label="Enterで進む向き" hidden={layout === 'mobile'}>
+        <div className="order-switch" role="radiogroup" aria-label="Enterで進む向き" hidden={layout === 'mobile' || !canEdit}>
           <span className="hint">Enter で進む向き：</span>
           <button
             role="radio"
@@ -346,6 +370,7 @@ function InputGrid({ session, allNames, records, onEdit, editPanel, onShowResult
             return ok
           }}
           autoNext={autoNext}
+          readOnly={!canEdit}
           onChangeAutoNext={(on) => {
             setAutoNext(on)
             saveAutoNext(on)
@@ -391,7 +416,9 @@ function InputGrid({ session, allNames, records, onEdit, editPanel, onShowResult
                       col={c}
                       value={value}
                       diff={s.diffs[c]}
-                      highlight={c === done}                      onCommit={onCommit}
+                      highlight={c === done}
+                      readOnly={!canEdit}
+                      onCommit={onCommit}
                       onNavigate={onNavigate}
                       registerInput={registerInput}
                     />
@@ -409,7 +436,7 @@ function InputGrid({ session, allNames, records, onEdit, editPanel, onShowResult
         </table>
       </div>
 
-      <ul className="help hint">
+      <ul className="help hint" hidden={!canEdit}>
         <li>
           入力例：<code>3852</code> → 38.52、<code>10523</code> → 1:05.23（<code>38.52</code> や <code>1:05.23</code> もそのまま入力できます）
         </li>

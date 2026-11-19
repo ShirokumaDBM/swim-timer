@@ -1,5 +1,5 @@
 import { diffsFromPrevious } from './stats'
-import type { Centis, RepTimes } from './types'
+import type { Centis, Id, RepTimes } from './types'
 
 export interface RepPoint {
   /** 何本目か（1始まり） */
@@ -40,7 +40,7 @@ export const MAX_COMPARE = 8
 
 /** 重ねグラフに出す選手と、その選手の色番号 */
 export interface SlotEntry {
-  id: number
+  id: Id
   slot: number
 }
 
@@ -49,7 +49,7 @@ export interface SlotEntry {
  * 色は選手についていく：外しても残りの選手の色は変わらず、加えた選手には空いている一番若い色を使う。
  * すでに max 人なら加えない。
  */
-export function toggleSlot(list: readonly SlotEntry[], id: number, max = MAX_COMPARE): SlotEntry[] {
+export function toggleSlot(list: readonly SlotEntry[], id: Id, max = MAX_COMPARE): SlotEntry[] {
   if (list.some((e) => e.id === id)) return list.filter((e) => e.id !== id)
   if (list.length >= max) return [...list]
   const used = new Set(list.map((e) => e.slot))

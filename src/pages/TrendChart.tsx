@@ -3,12 +3,12 @@ import type { NameType, ValueType } from 'recharts/types/component/DefaultToolti
 import { timeDomain, timeTicks } from '../domain/chart'
 import { compareChronological, metricsOf, type SessionDetail } from '../domain/compare'
 import { formatDate } from '../domain/date'
-import type { Centis } from '../domain/types'
+import type { Centis, Id } from '../domain/types'
 import { COLORS, SERIES_COLORS } from './chartTheme'
 import { formatMetric, type MetricOption } from './metricOptions'
 
 export interface TrendSeries {
-  id: number
+  id: string
   name: string
   /** 色番号（SERIES_COLORS の位置） */
   slot: number
@@ -24,7 +24,7 @@ interface Props {
 
 type Row = { index: number; date: string } & Record<string, number | string | null>
 
-const key = (id: number) => `s${id}`
+const key = (id: string) => `s${id}`
 const shortDate = (date: string) => `${Number(date.slice(5, 7))}/${Number(date.slice(8, 10))}`
 
 /** 測定ごとの値（平均・ベスト・ばらつきなど）の推移 */
@@ -32,7 +32,7 @@ export function TrendChart({ details, series, metric }: Props) {
   const formatTime = (v: Centis | null | undefined) => formatMetric(metric, v)
   const sessions = [...details].sort((a, b) => compareChronological(a.session, b.session))
   const averages = sessions.map((d) => {
-    const m = new Map<number, Centis | null>()
+    const m = new Map<Id, Centis | null>()
     for (const s of series) {
       const times = d.times.get(s.id)
       m.set(s.id, times ? metricsOf(times)[metric.key] : null)
@@ -192,12 +192,12 @@ function TrendTooltip({
 }: TooltipContentProps<ValueType, NameType> & {
   series: TrendSeries[]
   sessions: SessionDetail[]
-  averages: Map<number, Centis | null>[]
+  averages: Map<Id, Centis | null>[]
   metric: MetricOption
 }) {
   const i = Number(label)
   if (!active || !sessions[i]) return null
-  const joined = (id: number) => !!sessions[i].times.get(id)?.some((t) => t != null)
+  const joined = (id: Id) => !!sessions[i].times.get(id)?.some((t) => t != null)
   return (
     <div className="chart-tooltip">
       <div className="tt-rep">

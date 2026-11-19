@@ -15,8 +15,8 @@ import { createSession, getSession } from './sessions'
 import { addSwimmer } from './swimmers'
 import { saveCell } from './times'
 
-let a: number
-let b: number
+let a: string
+let b: string
 
 beforeEach(async () => {
   await Promise.all(db.tables.map((t) => t.clear()))
@@ -24,10 +24,10 @@ beforeEach(async () => {
   b = await addSwimmer({ name: 'B' })
 })
 
-async function session(date: string, reps: number, times: Record<number, (number | null)[]>, finish = true) {
+async function session(date: string, reps: number, times: Record<string, (number | null)[]>, finish = true) {
   const id = await createSession({ date, distance: 50, reps, swimmerIds: [a, b] })
   for (const [swimmerId, list] of Object.entries(times)) {
-    for (const [i, v] of list.entries()) await saveCell(id, Number(swimmerId), i + 1, v)
+    for (const [i, v] of list.entries()) await saveCell(id, swimmerId, i + 1, v)
   }
   if (finish) await finishSession(id)
   return id
@@ -41,15 +41,15 @@ describe('finishSession', () => {
   })
 
   it('削除された測定はエラー', async () => {
-    await expect(finishSession(999)).rejects.toThrow('削除されています')
+    await expect(finishSession('none')).rejects.toThrow('削除されています')
   })
 })
 
 describe('averagesBySwimmer', () => {
   it('欠損を除いて平均し、1/100秒に丸める', () => {
-    const r = (swimmerId: number, rep: number, centis: number | null) => ({ sessionId: 1, swimmerId, rep, centis })
+    const r = (swimmer: number, rep: number, centis: number | null) => ({ sessionId: '1', swimmerId: String(swimmer), rep, centis })
     const m = averagesBySwimmer([r(1, 1, 3800), r(1, 2, null), r(1, 3, 3801), r(1, 4, 3801), r(2, 1, null)])
-    expect(m).toEqual(new Map([[1, 3801]]))
+    expect(m).toEqual(new Map([['1', 3801]]))
   })
 })
 

@@ -1,4 +1,4 @@
-import type { Centis, Session } from './types'
+import type { Centis, Id, Session } from './types'
 
 /** 履歴の1行：測定 + 入力済みのタイム件数 + 各選手の平均 */
 export interface HistoryRow {
@@ -6,7 +6,7 @@ export interface HistoryRow {
   /** 入力済みのマス（欠損も含む）の件数 */
   timeCount: number
   /** swimmerId → 平均タイム（1/100秒に丸め済み） */
-  averages: Map<number, Centis>
+  averages: Map<Id, Centis>
 }
 
 /** 比較の条件（距離・本数）を表すキー */
@@ -37,7 +37,7 @@ export function conditionOptions(rows: readonly HistoryRow[]): ConditionOption[]
  * rows（新しい順）の index 行目について、その選手の「前回」（同じ条件・終了済み・より前）の平均。
  * なければ null。
  */
-export function previousAverage(rows: readonly HistoryRow[], index: number, swimmerId: number): Centis | null {
+export function previousAverage(rows: readonly HistoryRow[], index: number, swimmerId: Id): Centis | null {
   const key = conditionKey(rows[index].session)
   for (let j = index + 1; j < rows.length; j++) {
     const r = rows[j]

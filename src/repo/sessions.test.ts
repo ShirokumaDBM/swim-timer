@@ -15,8 +15,8 @@ import {
 import { addSwimmer, deleteSwimmer } from './swimmers'
 import { saveCell } from './times'
 
-let a: number
-let b: number
+let a: string
+let b: string
 
 beforeEach(async () => {
   await Promise.all(db.tables.map((t) => t.clear()))
@@ -50,7 +50,7 @@ describe('normalizeSessionInput', () => {
   })
 
   it('レーンは参加選手の並びの配列にする（未設定は null、参加していない選手は無視）', () => {
-    const r = normalizeSessionInput({ ...base(), swimmerIds: [b, a], lanes: { [a]: 3, 999: 1 } })
+    const r = normalizeSessionInput({ ...base(), swimmerIds: [b, a], lanes: { [a]: 3, none: 1 } })
     expect(r.lanes).toEqual([null, 3])
   })
 
@@ -86,13 +86,13 @@ describe('updateSession', () => {
     const id = await createSession(base())
     await saveCell(id, b, 1, 4000)
     await expect(updateSession(id, { ...base(), swimmerIds: [] })).rejects.toThrow(SessionError)
-    await expect(updateSession(id, { ...base(), swimmerIds: [a, 999] })).rejects.toThrow('削除された選手')
+    await expect(updateSession(id, { ...base(), swimmerIds: [a, 'none'] })).rejects.toThrow('削除された選手')
     expect(await getSession(id)).toMatchObject({ swimmerIds: [a, b] })
     expect(await db.times.count()).toBe(1)
   })
 
   it('削除された測定はエラー', async () => {
-    await expect(updateSession(999, base())).rejects.toThrow('削除されています')
+    await expect(updateSession('none', base())).rejects.toThrow('削除されています')
   })
 })
 
@@ -111,7 +111,7 @@ describe('createSession', () => {
   })
 
   it('存在しない選手が含まれるとエラー', async () => {
-    await expect(createSession({ ...base(), swimmerIds: [a, 999] })).rejects.toThrow(SessionError)
+    await expect(createSession({ ...base(), swimmerIds: [a, 'none'] })).rejects.toThrow(SessionError)
     expect(await db.sessions.count()).toBe(0)
   })
 })
@@ -151,5 +151,20 @@ describe('listInProgressSessions / getLatestSession', () => {
 
   it('測定がなければ undefined', async () => {
     expect(await getLatestSession()).toBeUndefined()
+  })
+})
+
+describe('記録係', () => {
+  it('記録係は重複を除いて保存し、誰もいなければ保存しない', () => {
+    expect(normalizeSessionInput({ ...base(), recorderIds: ['u1', 'u1', 'u2'] }).recorderIds).toEqual(['u1', 'u2'])
+    expect(normalizeSessionInput({ ...base(), recorderIds: [] }).recorderIds).toBeUndefined()
+    expect(normalizeSessionInput(base()).recorderIds).toBeUndefined()
+  })
+
+  it('作成・変更で記録係が保存される', async () => {
+    const id = await createSession({ ...base(), recorderIds: ['u1'] })
+    expect((await getSession(id))!.recorderIds).toEqual(['u1'])
+    await updateSession(id, { ...base(), recorderIds: ['u2'] })
+    expect((await getSession(id))!.recorderIds).toEqual(['u2'])
   })
 })

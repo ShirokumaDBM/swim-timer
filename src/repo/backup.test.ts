@@ -50,15 +50,17 @@ describe('書き出し → 読み込み', () => {
     const backup = parseBackup(JSON.stringify(await exportData()))
     await addSwimmer({ name: '後から追加' })
     await importData(backup)
-    expect((await db.swimmers.toArray()).map((s) => s.name)).toEqual(['山田', '佐藤'])
+    expect((await db.swimmers.orderBy('createdAt').toArray()).map((s) => s.name)).toEqual(['山田', '佐藤'])
   })
 
-  it('読み込み後に追加した選手には新しい番号が振られる', async () => {
+  it('読み込み後に追加した選手は、新しい番号で一覧の最後に入る', async () => {
     await seed()
     const backup = parseBackup(JSON.stringify(await exportData()))
     await importData(backup)
     const id = await addSwimmer({ name: '新人' })
-    expect(id).toBeGreaterThan(Math.max(...backup.swimmers.map((s) => s.id!)))
+    // 新しい番号はランダムなので、読み込んだ選手の番号とぶつからない
+    expect(backup.swimmers.map((s) => s.id)).not.toContain(id)
+    expect((await db.swimmers.orderBy('createdAt').last())!.id).toBe(id)
   })
 })
 
@@ -84,14 +86,21 @@ describe('parseBackup のチェック', () => {
     ['レーンが範囲外', () => broken((d) => (d.sessions[0].lanes = d.sessions[0].swimmerIds.map(() => 6))), '測定 1件目'],
     ['レーンの数が選手数と違う', () => broken((d) => (d.sessions[0].lanes = [1])), '測定 1件目'],
     ['タイムが小数',() => broken((d) => (d.times[0].centis = 38.52)), 'タイム 1件目'],
-    ['存在しない選手', () => broken((d) => d.sessions[0].swimmerIds.push(999)), '存在しない選手'],
-    ['存在しない測定', () => broken((d) => (d.times[0].sessionId = 999)), '存在しない測定'],
+    ['存在しない選手', () => broken((d) => d.sessions[0].swimmerIds.push('none')), '存在しない選手'],
+    ['存在しない測定', () => broken((d) => (d.times[0].sessionId = 'none')), '存在しない測定'],
     ['本数を超えるタイム', () => broken((d) => (d.times[0].rep = 4)), '存在しない測定'],
     ['タイムの重複', () => broken((d) => d.times.push({ ...d.times[0] })), '重複'],
     ['選手番号の重複', () => broken((d) => d.swimmers.push({ ...d.swimmers[0], name: 'X' })), '重複'],
   ])('%s', (_, make, msg) => {
     expect(() => parseBackup(make())).toThrow(BackupError)
     expect(() => parseBackup(make())).toThrow(msg)
+  })
+
+  it('クラウドと同期している端末では読み込めない（今のデータは変わらない）', async () => {
+    await db.meta.put({ key: 'cloud:linked', value: true })
+    const before = await currentSummary()
+    await expect(importData(parseBackup(JSON.stringify(good)))).rejects.toThrow('クラウドと同期している')
+    expect(await currentSummary()).toEqual(before)
   })
 
   it('チェックに失敗したら今のデータは変わらない', async () => {

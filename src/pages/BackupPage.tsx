@@ -2,18 +2,15 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState, type ChangeEvent } from 'react'
 import {
   BackupError,
-  backupFileName,
   currentSummary,
-  exportData,
   importData,
   parseBackup,
   summarize,
   type BackupData,
   type DataSummary,
 } from '../repo/backup'
+import { downloadBackup, LAST_BACKUP_KEY } from './downloadBackup'
 import './BackupPage.css'
-
-const LAST_BACKUP_KEY = 'swim-timer:lastBackupAt'
 
 function loadLastBackup(): string | null {
   try {
@@ -35,18 +32,6 @@ function daysSince(iso: string): number {
 
 const summaryText = (s: DataSummary) => `選手 ${s.swimmers}人・測定 ${s.sessions}件・タイム ${s.times}件`
 
-function download(data: BackupData) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = backupFileName(new Date(data.exportedAt))
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
-}
-
 export function BackupPage() {
   const summary = useLiveQuery(currentSummary)
   const [lastBackup, setLastBackup] = useState(loadLastBackup)
@@ -61,14 +46,7 @@ export function BackupPage() {
     setError(null)
     setDone(null)
     try {
-      const data = await exportData()
-      download(data)
-      try {
-        localStorage.setItem(LAST_BACKUP_KEY, data.exportedAt)
-      } catch {
-        // 記録できなくても書き出しは成功している
-      }
-      setLastBackup(data.exportedAt)
+      setLastBackup(await downloadBackup())
       setDone('バックアップを書き出しました。ダウンロードフォルダを確認してください。')
     } catch (err) {
       setError(`書き出せませんでした: ${String(err)}`)
@@ -96,7 +74,10 @@ export function BackupPage() {
       setDone(`「${pending.name}」を読み込みました（${summaryText(summarize(pending.data))}）。`)
       setPending(null)
     } catch (err) {
-      setError(`読み込めませんでした（データは変更されていません）: ${String(err)}`)
+      setError(
+        err instanceof BackupError ? err.message : `読み込めませんでした（データは変更されていません）: ${String(err)}`,
+      )
+      setPending(null)
     }
   }
 

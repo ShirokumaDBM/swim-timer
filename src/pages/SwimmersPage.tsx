@@ -8,6 +8,7 @@ import {
   SwimmerError,
   updateSwimmer,
 } from '../repo/swimmers'
+import { usePermissions } from '../cloud/permissions'
 import './SwimmersPage.css'
 
 const GRADE_SUGGESTIONS = ['1年', '2年', '3年', '4年']
@@ -19,12 +20,21 @@ function errorMessage(e: unknown): string {
 export function SwimmersPage() {
   const swimmers = useLiveQuery(listSwimmers)
   const [message, setMessage] = useState<string | null>(null)
+  // クラウドと同期している端末では、選手を登録・修正できるのは管理者と、入力中の測定の記録係だけ
+  const perm = usePermissions()
+  const canEdit = perm.canEditSwimmers
 
   if (!swimmers) return <p>読み込み中…</p>
 
   return (
     <div className="page swimmers-page">
-      <AddForm onError={setMessage} onDone={() => setMessage(null)} />
+      {canEdit ? (
+        <AddForm onError={setMessage} onDone={() => setMessage(null)} />
+      ) : (
+        <p className="hint read-only-hint">
+          {perm.generalReason ?? '選手を登録・修正できるのは、管理者と、入力中の測定の記録係です。'}
+        </p>
+      )}
 
       {message && (
         <p className="error" role="alert">
@@ -35,7 +45,7 @@ export function SwimmersPage() {
       <div className="list-header">登録選手 {swimmers.length}人</div>
 
       {swimmers.length === 0 ? (
-        <p className="empty">まだ選手が登録されていません。上のフォームから登録してください。</p>
+        <p className="empty">まだ選手が登録されていません。{canEdit && '上のフォームから登録してください。'}</p>
       ) : (
         <table className="swimmers-table">
           <thead>
@@ -47,7 +57,7 @@ export function SwimmersPage() {
           </thead>
           <tbody>
             {swimmers.map((s) => (
-              <SwimmerRow key={s.id} swimmer={s} onError={setMessage} onDone={() => setMessage(null)} />
+              <SwimmerRow key={s.id} swimmer={s} canEdit={canEdit} onError={setMessage} onDone={() => setMessage(null)} />
             ))}
           </tbody>
         </table>
@@ -113,8 +123,8 @@ function AddForm({ onError, onDone }: Callbacks) {
   )
 }
 
-function SwimmerRow({ swimmer, onError, onDone }: { swimmer: Swimmer } & Callbacks) {
-  const id = swimmer.id!
+function SwimmerRow({ swimmer, canEdit, onError, onDone }: { swimmer: Swimmer; canEdit: boolean } & Callbacks) {
+  const id = swimmer.id
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(swimmer.name)
   const [grade, setGrade] = useState(swimmer.grade ?? '')
@@ -172,7 +182,7 @@ function SwimmerRow({ swimmer, onError, onDone }: { swimmer: Swimmer } & Callbac
       <td>{swimmer.name}</td>
       <td>{swimmer.grade ?? ''}</td>
       <td className="actions">
-        <div>
+        <div hidden={!canEdit}>
         {confirmingDelete ? (
           <>
             <span className="confirm-text">本当に削除しますか？</span>

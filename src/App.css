@@ -19,6 +19,15 @@
   white-space: nowrap;
 }
 
+/* PC：タイトル・メニュー・アカウントを1行に並べ、アカウントは右端へ */
+.brand-row {
+  display: contents;
+}
+
+.app-header .account {
+  order: 3;
+}
+
 .app-header nav {
   display: flex;
   flex-wrap: wrap;
@@ -61,6 +70,17 @@
   .app-header h1 {
     padding: 0 6px;
     font-size: 1.05rem;
+  }
+
+  /* スマホ：1行目にタイトルとアカウント、2行目にメニュー */
+  .brand-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .app-header .account-name {
+    max-width: 6em;
   }
 
   /* メニューは折り返さず、横にスクロールする */

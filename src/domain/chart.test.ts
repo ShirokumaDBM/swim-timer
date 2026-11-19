@@ -14,19 +14,19 @@ describe('repSeries', () => {
 
 describe('toggleSlot', () => {
   it('加えると空いている一番若い色、外しても残りの色は変わらない', () => {
-    let list = toggleSlot([], 10)
-    list = toggleSlot(list, 20)
-    list = toggleSlot(list, 30)
-    expect(list).toEqual([{ id: 10, slot: 0 }, { id: 20, slot: 1 }, { id: 30, slot: 2 }])
-    list = toggleSlot(list, 20) // 外す
-    expect(list).toEqual([{ id: 10, slot: 0 }, { id: 30, slot: 2 }])
-    list = toggleSlot(list, 40) // 空いた色1を使う
-    expect(list).toEqual([{ id: 10, slot: 0 }, { id: 30, slot: 2 }, { id: 40, slot: 1 }])
+    let list = toggleSlot([], '10')
+    list = toggleSlot(list, '20')
+    list = toggleSlot(list, '30')
+    expect(list).toEqual([{ id: '10', slot: 0 }, { id: '20', slot: 1 }, { id: '30', slot: 2 }])
+    list = toggleSlot(list, '20') // 外す
+    expect(list).toEqual([{ id: '10', slot: 0 }, { id: '30', slot: 2 }])
+    list = toggleSlot(list, '40') // 空いた色1を使う
+    expect(list).toEqual([{ id: '10', slot: 0 }, { id: '30', slot: 2 }, { id: '40', slot: 1 }])
   })
 
   it('上限を超えては加えない', () => {
-    const list = toggleSlot(toggleSlot([], 1, 2), 2, 2)
-    expect(toggleSlot(list, 3, 2)).toEqual(list)
+    const list = toggleSlot(toggleSlot([], '1', 2), '2', 2)
+    expect(toggleSlot(list, '3', 2)).toEqual(list)
   })
 })
 

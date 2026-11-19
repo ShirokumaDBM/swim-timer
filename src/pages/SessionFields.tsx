@@ -1,7 +1,8 @@
+import type { Member } from '../cloud/members'
 import { LANES } from '../domain/lanes'
 import type { SessionDraft } from '../domain/sessionDraft'
 import { STROKES } from '../domain/sessionLabel'
-import type { Swimmer } from '../domain/types'
+import type { Id, Swimmer } from '../domain/types'
 import { MAX_REPS } from '../repo/sessions'
 import './SessionFields.css'
 
@@ -14,21 +15,25 @@ interface Props {
   swimmers: Swimmer[]
   /** 選手が1人もいないときの「選手管理へ」 */
   onGoSwimmers?: () => void
+  /** 記録係に選べる人（クラウドと同期している端末の管理者だけ。null なら欄を出さない） */
+  recorderOptions?: Member[] | null
+  /** 記録係の候補を読み込めなかった理由 */
+  recorderError?: string | null
 }
 
 /** 測定の設定（測定日・距離・本数・種目・サークル・メモ・参加選手・レーン）。新規作成と編集で共通 */
-export function SessionFields({ draft, onChange, swimmers, onGoSwimmers }: Props) {
-  const allIds = swimmers.map((s) => s.id!)
-  const selectedSwimmers = swimmers.filter((s) => draft.selected.has(s.id!))
+export function SessionFields({ draft, onChange, swimmers, onGoSwimmers, recorderOptions, recorderError }: Props) {
+  const allIds = swimmers.map((s) => s.id)
+  const selectedSwimmers = swimmers.filter((s) => draft.selected.has(s.id))
 
-  function toggle(id: number) {
+  function toggle(id: Id) {
     const next = new Set(draft.selected)
     if (next.has(id)) next.delete(id)
     else next.add(id)
     onChange({ selected: next })
   }
 
-  function setLane(id: number, lane: number | null) {
+  function setLane(id: Id, lane: number | null) {
     const next = { ...draft.lanes }
     if (lane == null) delete next[id]
     else next[id] = lane
@@ -147,8 +152,8 @@ export function SessionFields({ draft, onChange, swimmers, onGoSwimmers }: Props
         ) : (
           <div className="swimmer-checks">
             {swimmers.map((s) => (
-              <label key={s.id} className={draft.selected.has(s.id!) ? 'checked' : ''}>
-                <input type="checkbox" checked={draft.selected.has(s.id!)} onChange={() => toggle(s.id!)} />
+              <label key={s.id} className={draft.selected.has(s.id) ? 'checked' : ''}>
+                <input type="checkbox" checked={draft.selected.has(s.id)} onChange={() => toggle(s.id)} />
                 {s.name}
                 {s.grade && <span className="grade">{s.grade}</span>}
               </label>
@@ -162,7 +167,7 @@ export function SessionFields({ draft, onChange, swimmers, onGoSwimmers }: Props
           <legend>
             レーン（任意）
             <span className="hint">設定すると、測定入力でレーン順に並べ替えられます</span>
-            {selectedSwimmers.some((s) => draft.lanes[s.id!] != null) && (
+            {selectedSwimmers.some((s) => draft.lanes[s.id] != null) && (
               <button type="button" onClick={() => onChange({ lanes: {} })}>
                 レーンをすべて解除
               </button>
@@ -170,7 +175,7 @@ export function SessionFields({ draft, onChange, swimmers, onGoSwimmers }: Props
           </legend>
           <div className="lane-rows">
             {selectedSwimmers.map((s) => {
-              const current = draft.lanes[s.id!] ?? null
+              const current = draft.lanes[s.id] ?? null
               return (
                 <div key={s.id} className="lane-row" role="radiogroup" aria-label={`${s.name}のレーン`}>
                   <span className="lane-name">{s.name}</span>
@@ -182,7 +187,7 @@ export function SessionFields({ draft, onChange, swimmers, onGoSwimmers }: Props
                       aria-checked={current === lane}
                       aria-label={lane == null ? 'なし' : `${lane}レーン`}
                       className={current === lane ? 'lane-btn selected' : 'lane-btn'}
-                      onClick={() => setLane(s.id!, lane)}
+                      onClick={() => setLane(s.id, lane)}
                     >
                       {lane ?? '－'}
                     </button>
@@ -193,6 +198,62 @@ export function SessionFields({ draft, onChange, swimmers, onGoSwimmers }: Props
           </div>
         </fieldset>
       )}
+      {(recorderOptions !== undefined || recorderError) && (
+        <RecorderPicker
+          options={recorderOptions ?? null}
+          error={recorderError ?? null}
+          selected={draft.recorderIds}
+          onChange={(recorderIds) => onChange({ recorderIds })}
+        />
+      )}
     </>
+  )
+}
+
+interface PickerProps {
+  /** 候補（読み込み中は null） */
+  options: Member[] | null
+  error: string | null
+  selected: readonly string[]
+  onChange: (ids: string[]) => void
+}
+
+/** 記録係を選ぶ（承認された部員・管理者から、何人でも） */
+function RecorderPicker({ options, error, selected, onChange }: PickerProps) {
+  const candidates = (options ?? []).filter((m) => m.role !== 'pending')
+  // 名簿にいなくなった人（承認を取り消された人など）も、外せるように並べる
+  const unknown = selected.filter((id) => !candidates.some((m) => m.userId === id))
+  const toggle = (id: string) =>
+    onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id])
+
+  return (
+    <fieldset className="recorders">
+      <legend>
+        記録係（{selected.length}人）
+        <span className="hint">記録係は、この測定が入力中の間、全員分のタイムを入力・修正できます</span>
+      </legend>
+      {error ? (
+        <p className="error">{error}</p>
+      ) : !options ? (
+        <p className="hint">部員名簿を読み込み中…</p>
+      ) : (
+        <div className="swimmer-checks">
+          {candidates.map((m) => (
+            <label key={m.userId} className={selected.includes(m.userId) ? 'checked' : ''}>
+              <input type="checkbox" checked={selected.includes(m.userId)} onChange={() => toggle(m.userId)} />
+              {m.displayName || '（名前なし）'}
+              {m.role === 'admin' && <span className="grade">管理者</span>}
+            </label>
+          ))}
+          {unknown.map((id) => (
+            <label key={id} className="checked">
+              <input type="checkbox" checked onChange={() => toggle(id)} />
+              （名簿にいない人）
+            </label>
+          ))}
+        </div>
+      )}
+      {options && selected.length === 0 && <p className="hint">選ばないと、管理者だけが入力できます。</p>}
+    </fieldset>
   )
 }

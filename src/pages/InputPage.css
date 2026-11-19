@@ -315,3 +315,14 @@
     left: auto;
   }
 }
+
+/* 見るだけの案内（記録係でない・終了済みなど） */
+.finished-note.read-only-note {
+  background: #f6f8fa;
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+
+.recorders-line {
+  margin: -6px 0 10px;
+}

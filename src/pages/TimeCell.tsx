@@ -15,6 +15,8 @@ interface Props {
   onNavigate: (row: number, col: number, key: NavKey) => void
   registerInput: (row: number, col: number, el: HTMLInputElement | null) => void
   highlight: boolean
+  /** 見るだけ（記録係でない・終了済みなど）。矢印での移動はできる */
+  readOnly?: boolean
 }
 
 const MISSING_MARK = '—'
@@ -42,6 +44,7 @@ export const TimeCell = memo(function TimeCell({
   onNavigate,
   registerInput,
   highlight,
+  readOnly = false,
 }: Props) {
   /** null = まだ打ち込んでいない（保存済みの値を表示） */
   const [draft, setDraft] = useState<string | null>(null)
@@ -51,6 +54,7 @@ export const TimeCell = memo(function TimeCell({
   const display = displayOf(value)
 
   function commit(text: string): boolean {
+    if (readOnly) return true
     if (text === committed.current) return true
     const ok = onCommit(row, col, text)
     setInvalid(!ok)
@@ -86,6 +90,7 @@ export const TimeCell = memo(function TimeCell({
       ].join(' ')}
     >
       <input
+        readOnly={readOnly}
         ref={(el) => registerInput(row, col, el)}
         className="num"
         value={draft ?? display}

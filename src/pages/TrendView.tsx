@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { MAX_COMPARE, toggleSlot, type SlotEntry } from '../domain/chart'
 import { compareChronological, type MetricKey } from '../domain/compare'
 import { formatDate } from '../domain/date'
+import type { Id } from '../domain/types'
 import { loadAllDetails } from '../repo/results'
 import { listSwimmers } from '../repo/swimmers'
 import { SERIES_COLORS } from './chartTheme'
@@ -22,7 +23,7 @@ export function TrendView({ initialDistance }: Props) {
   })
   const [distanceChoice, setDistanceChoice] = useState(initialDistance)
   /** 外した測定（何も外していなければ全部が対象。新しい測定は自動で入る） */
-  const [excluded, setExcluded] = useState<ReadonlySet<number>>(new Set())
+  const [excluded, setExcluded] = useState<ReadonlySet<Id>>(new Set())
   /** 表示する選手と色（null = まだ選んでいない → 先頭から8人） */
   const [entries, setEntries] = useState<SlotEntry[] | null>(null)
   /** 比べる値（平均・ベスト・ばらつきなど） */
@@ -38,29 +39,29 @@ export function TrendView({ initialDistance }: Props) {
   const candidates = data.details
     .filter((d) => d.session.distance === distance)
     .sort((a, b) => compareChronological(b.session, a.session))
-  const included = candidates.filter((d) => !excluded.has(d.session.id!))
+  const included = candidates.filter((d) => !excluded.has(d.session.id))
   const repsList = [...new Set(candidates.map((d) => d.session.reps))].sort((a, b) => a - b)
 
   // 選んだ測定のどれかにタイムがある選手（選手一覧の順。削除された選手は最後）
-  const withTimes = new Set<number>()
+  const withTimes = new Set<Id>()
   for (const d of included) {
     for (const [id, times] of d.times) if (times.some((t) => t != null)) withTimes.add(id)
   }
-  const known = data.swimmers.filter((s) => withTimes.has(s.id!))
-  const knownIds = new Set(known.map((s) => s.id!))
+  const known = data.swimmers.filter((s) => withTimes.has(s.id))
+  const knownIds = new Set(known.map((s) => s.id))
   const swimmers = [
-    ...known.map((s) => ({ id: s.id!, name: s.name })),
+    ...known.map((s) => ({ id: s.id, name: s.name })),
     ...[...withTimes].filter((id) => !knownIds.has(id)).map((id) => ({ id, name: '（削除された選手）' })),
   ]
   const ids = swimmers.map((s) => s.id)
   const active = (entries ?? ids.slice(0, MAX_COMPARE).reduce<SlotEntry[]>((l, id) => toggleSlot(l, id), [])).filter(
     (e) => ids.includes(e.id),
   )
-  const slotOf = (id: number) => active.find((e) => e.id === id)?.slot
+  const slotOf = (id: Id) => active.find((e) => e.id === id)?.slot
   const series = swimmers.filter((s) => slotOf(s.id) != null).map((s) => ({ ...s, slot: slotOf(s.id)! }))
   const full = active.length >= MAX_COMPARE
 
-  function toggleSession(id: number) {
+  function toggleSession(id: Id) {
     const next = new Set(excluded)
     if (next.has(id)) next.delete(id)
     else next.add(id)
@@ -69,7 +70,7 @@ export function TrendView({ initialDistance }: Props) {
 
   /** f に合う測定だけを選ぶ */
   function selectOnly(f: (reps: number) => boolean) {
-    setExcluded(new Set(candidates.filter((d) => !f(d.session.reps)).map((d) => d.session.id!)))
+    setExcluded(new Set(candidates.filter((d) => !f(d.session.reps)).map((d) => d.session.id)))
   }
 
   return (
@@ -111,10 +112,10 @@ export function TrendView({ initialDistance }: Props) {
         )}
         <div className="trend-session-list">
           {candidates.map((d) => {
-            const on = !excluded.has(d.session.id!)
+            const on = !excluded.has(d.session.id)
             return (
               <label key={d.session.id} className={on ? 'checked' : ''}>
-                <input type="checkbox" checked={on} onChange={() => toggleSession(d.session.id!)} />
+                <input type="checkbox" checked={on} onChange={() => toggleSession(d.session.id)} />
                 {formatDate(d.session.date)}
                 <span className="reps">{d.session.reps}本</span>
                 {d.session.status === 'in_progress' && <span className="status-label">入力中</span>}

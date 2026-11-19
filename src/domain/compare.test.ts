@@ -10,14 +10,14 @@ function summary(
 ): SessionSummary {
   return {
     session: {
-      id: nextId++,
+      id: String(nextId++),
       date,
       distance: opts.distance ?? 50,
       reps,
       status: opts.status ?? 'finished',
       createdAt: opts.createdAt ?? 0,
     },
-    averages: new Map(Object.entries(averages).map(([k, v]) => [Number(k), v])),
+    averages: new Map(Object.entries(averages)),
   }
 }
 
@@ -56,7 +56,7 @@ describe('compareSwimmerAverage', () => {
   ]
 
   it('前回・ベスト・直近3回と比べる（マイナス = 速くなった）', () => {
-    const r = compareSwimmerAverage(1, 3808, comparable)
+    const r = compareSwimmerAverage('1', 3808, comparable)
     expect(r.previous).toMatchObject({ date: '2026-10-29', average: 3850, diff: -42 })
     expect(r.best).toMatchObject({ date: '2026-10-22', average: 3790, diff: 18 })
     expect(r.recent?.count).toBe(3)
@@ -64,13 +64,13 @@ describe('compareSwimmerAverage', () => {
   })
 
   it('その選手が参加していない回は飛ばす', () => {
-    const r = compareSwimmerAverage(2, 3620, comparable)
+    const r = compareSwimmerAverage('2', 3620, comparable)
     expect(r.previous).toMatchObject({ date: '2026-10-29', diff: 20 })
     expect(r.recent?.count).toBe(2)
   })
 
   it('過去データがなければすべて null', () => {
-    const r = compareSwimmerAverage(99, 3800, comparable)
+    const r = compareSwimmerAverage('99', 3800, comparable)
     expect(r).toEqual({ current: 3800, previous: null, best: null, recent: null })
   })
 })

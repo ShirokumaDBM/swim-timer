@@ -1,5 +1,5 @@
 import { parseTimeInput } from './time'
-import type { Centis, RepTimes, TimeRecord } from './types'
+import type { Centis, Id, RepTimes, TimeRecord } from './types'
 
 /**
  * 入力表の1マスの値
@@ -12,7 +12,7 @@ export type CellValue = Centis | null | undefined
 /** grid[選手の行][本の列]（列 0 が1本目） */
 export type Grid = CellValue[][]
 
-export function buildGrid(swimmerIds: number[], reps: number, records: TimeRecord[]): Grid {
+export function buildGrid(swimmerIds: Id[], reps: number, records: TimeRecord[]): Grid {
   const rowOf = new Map(swimmerIds.map((id, i) => [id, i]))
   const grid: Grid = swimmerIds.map(() => Array<CellValue>(reps).fill(undefined))
   for (const rec of records) {

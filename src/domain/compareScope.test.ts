@@ -11,8 +11,8 @@ import {
 import type { RepTimes } from './types'
 
 const detail = (id: number, date: string, times: Record<number, RepTimes>, reps = 4): SessionDetail => ({
-  session: { id, date, distance: 50, reps, status: 'finished', createdAt: id },
-  times: new Map(Object.entries(times).map(([k, v]) => [Number(k), v])),
+  session: { id: String(id), date, distance: 50, reps, status: 'finished', createdAt: id },
+  times: new Map(Object.entries(times)),
 })
 
 describe('metricsOf', () => {
@@ -64,29 +64,29 @@ describe('scopeDetails / compareWithScope', () => {
   const comparable = findComparableSessions(current.session, all)
 
   it('前回：その選手が参加した直近の測定', () => {
-    expect(scopeDetails('2026-11-20', comparable, 'previous', 1).map((d) => d.session.id)).toEqual([3])
-    expect(scopeDetails('2026-11-20', comparable, 'previous', 2).map((d) => d.session.id)).toEqual([2])
+    expect(scopeDetails('2026-11-20', comparable, 'previous', '1').map((d) => d.session.id)).toEqual(['3'])
+    expect(scopeDetails('2026-11-20', comparable, 'previous', '2').map((d) => d.session.id)).toEqual(['2'])
   })
 
   it('同じ月：今回と同じ年月の測定だけ', () => {
-    expect(scopeDetails('2026-11-20', comparable, 'month', 1).map((d) => d.session.id)).toEqual([3, 2])
+    expect(scopeDetails('2026-11-20', comparable, 'month', '1').map((d) => d.session.id)).toEqual(['3', '2'])
   })
 
   it('これまで全部（条件が違う測定は入らない）', () => {
-    expect(scopeDetails('2026-11-20', comparable, 'all', 1).map((d) => d.session.id)).toEqual([3, 2, 1])
+    expect(scopeDetails('2026-11-20', comparable, 'all', '1').map((d) => d.session.id)).toEqual(['3', '2', '1'])
   })
 
   it('前回との比較：指標の差と、前回の1本ごとのタイム', () => {
-    const r = compareWithScope(1, [3700, 3700, 3800, 3800], '2026-11-20', comparable, 'previous')
+    const r = compareWithScope('1', [3700, 3700, 3800, 3800], '2026-11-20', comparable, 'previous')
     expect(r.current.average).toBe(3750)
     expect(r.reference!.average).toBe(3850)
     expect(r.diff).toMatchObject({ average: -100, best: -100, worst: -100, fade: 0 })
     expect(r.series).toEqual([3800, 3800, 3900, 3900])
-    expect(r.sessions).toEqual([{ id: 3, date: '2026-11-13' }])
+    expect(r.sessions).toEqual([{ id: '3', date: '2026-11-13' }])
   })
 
   it('全期間との比較：各回の指標の平均、何本目ごとの平均', () => {
-    const r = compareWithScope(1, [3700, 3700, 3800, 3800], '2026-11-20', comparable, 'all')
+    const r = compareWithScope('1', [3700, 3700, 3800, 3800], '2026-11-20', comparable, 'all')
     expect(r.reference!.average).toBe(3917) // (3850 + 3900 + 4000) / 3
     expect(r.diff!.average).toBe(-167)
     expect(r.series).toEqual([3900, 3900, 3933, 3933])
@@ -94,7 +94,7 @@ describe('scopeDetails / compareWithScope', () => {
   })
 
   it('相手がなければ今回の指標だけ', () => {
-    const r = compareWithScope(3, [3700, 3800], '2026-11-20', comparable, 'all')
+    const r = compareWithScope('3', [3700, 3800], '2026-11-20', comparable, 'all')
     expect(r).toMatchObject({ reference: null, diff: null, series: null, sessions: [] })
     expect(r.current.average).toBe(3750)
   })

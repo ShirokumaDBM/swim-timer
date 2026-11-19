@@ -1,11 +1,11 @@
 import { average, swimmerStats } from './stats'
-import type { Centis, RepTimes, Session } from './types'
+import type { Centis, Id, RepTimes, Session } from './types'
 
 /** 比較に必要なセッション情報 + 各選手の平均タイム */
 export interface SessionSummary {
   session: Pick<Session, 'id' | 'date' | 'distance' | 'reps' | 'status' | 'createdAt'>
   /** swimmerId → 平均タイム */
-  averages: Map<number, Centis>
+  averages: Map<Id, Centis>
 }
 
 /** セッションの時系列順（日付 → 作成日時） */
@@ -38,7 +38,7 @@ export function findComparableSessions<T extends { session: SessionSummary['sess
 }
 
 export interface AverageReference {
-  sessionId: number | undefined
+  sessionId: Id
   date: string
   average: Centis
   /** 今回 − 基準（マイナス = 速くなった） */
@@ -60,7 +60,7 @@ export interface AverageComparison {
  * comparable は findComparableSessions の結果（新しい順）を渡す。
  */
 export function compareSwimmerAverage(
-  swimmerId: number,
+  swimmerId: Id,
   current: Centis,
   comparable: SessionSummary[],
   recentCount = 3,
@@ -100,7 +100,7 @@ export type CompareScope = 'previous' | 'month' | 'all'
 export interface SessionDetail {
   session: SessionSummary['session']
   /** swimmerId → タイム列（index 0 が1本目。未入力・欠損は null） */
-  times: Map<number, RepTimes>
+  times: Map<Id, RepTimes>
 }
 
 /** 比べる指標（すべて 1/100秒に丸めた値。計算できなければ null） */
@@ -170,7 +170,7 @@ export function scopeDetails(
   targetDate: string,
   comparable: SessionDetail[],
   scope: CompareScope,
-  swimmerId: number,
+  swimmerId: Id,
 ): SessionDetail[] {
   const joined = comparable.filter((d) => d.times.get(swimmerId)?.some((t) => t != null))
   if (scope === 'previous') return joined.slice(0, 1)
@@ -187,12 +187,12 @@ export interface ScopeComparison {
   /** 比較相手の1本ごとのタイム（複数回のときは何本目ごとの平均） */
   series: RepTimes | null
   /** 比較相手にした測定（新しい順） */
-  sessions: { id: number | undefined; date: string }[]
+  sessions: { id: Id; date: string }[]
 }
 
 /** ある選手の今回のタイムを、選んだ期間の過去の測定と比べる */
 export function compareWithScope(
-  swimmerId: number,
+  swimmerId: Id,
   currentTimes: RepTimes,
   targetDate: string,
   comparable: SessionDetail[],

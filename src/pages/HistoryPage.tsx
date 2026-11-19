@@ -4,23 +4,27 @@ import { formatDate } from '../domain/date'
 import { conditionKey, conditionOptions, previousAverage, type HistoryRow } from '../domain/history'
 import { sessionMenu } from '../domain/sessionLabel'
 import { formatDiff, formatTime } from '../domain/time'
+import type { Id } from '../domain/types'
 import { loadHistory } from '../repo/results'
 import { deleteSession } from '../repo/sessions'
 import { listSwimmers } from '../repo/swimmers'
+import { usePermissions } from '../cloud/permissions'
 import './HistoryPage.css'
 
 interface Props {
-  onOpenResult: (sessionId: number) => void
-  onOpenChart: (sessionId: number, swimmerId?: number) => void
-  onOpenInput: (sessionId: number) => void
+  onOpenResult: (sessionId: Id) => void
+  onOpenChart: (sessionId: Id, swimmerId?: Id) => void
+  onOpenInput: (sessionId: Id) => void
 }
 
 export function HistoryPage({ onOpenResult, onOpenChart, onOpenInput }: Props) {
   const rows = useLiveQuery(loadHistory)
+  // 削除は管理者だけ。入力中の測定に入力できるのは記録係・管理者（クラウドと同期している端末）
+  const perm = usePermissions()
   const swimmers = useLiveQuery(listSwimmers)
   const [condition, setCondition] = useState('')
-  const [swimmerId, setSwimmerId] = useState<number | null>(null)
-  const [confirmingId, setConfirmingId] = useState<number | null>(null)
+  const [swimmerId, setSwimmerId] = useState<Id | null>(null)
+  const [confirmingId, setConfirmingId] = useState<Id | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   if (!rows || !swimmers) return <p>読み込み中…</p>
@@ -43,7 +47,7 @@ export function HistoryPage({ onOpenResult, onOpenChart, onOpenInput }: Props) {
     )
   const swimmerName = swimmers.find((s) => s.id === swimmerId)?.name
 
-  async function remove(id: number) {
+  async function remove(id: Id) {
     try {
       await deleteSession(id)
       setConfirmingId(null)
@@ -71,7 +75,7 @@ export function HistoryPage({ onOpenResult, onOpenChart, onOpenInput }: Props) {
           選手
           <select
             value={swimmerId ?? ''}
-            onChange={(e) => setSwimmerId(e.target.value === '' ? null : Number(e.target.value))}
+            onChange={(e) => setSwimmerId(e.target.value === '' ? null : e.target.value)}
           >
             <option value="">すべての選手</option>
             {swimmers.map((s) => (
@@ -124,11 +128,13 @@ export function HistoryPage({ onOpenResult, onOpenChart, onOpenInput }: Props) {
                   swimmerId={swimmerId}
                   previous={swimmerId != null ? previousAverage(rows, index, swimmerId) : null}
                   confirming={confirmingId === row.session.id}
-                  onConfirm={(on) => setConfirmingId(on ? row.session.id! : null)}
-                  onDelete={() => remove(row.session.id!)}
-                  onOpenResult={() => onOpenResult(row.session.id!)}
-                  onOpenChart={() => onOpenChart(row.session.id!, swimmerId ?? undefined)}
-                  onOpenInput={() => onOpenInput(row.session.id!)}
+                  onConfirm={(on) => setConfirmingId(on ? row.session.id : null)}
+                  onDelete={() => remove(row.session.id)}
+                  onOpenResult={() => onOpenResult(row.session.id)}
+                  onOpenChart={() => onOpenChart(row.session.id, swimmerId ?? undefined)}
+                  onOpenInput={() => onOpenInput(row.session.id)}
+                  canEdit={perm.canEditSession(row.session)}
+                  canDelete={perm.canDeleteSession}
                 />
               ))}
             </tbody>
@@ -141,7 +147,7 @@ export function HistoryPage({ onOpenResult, onOpenChart, onOpenInput }: Props) {
 
 interface LineProps {
   row: HistoryRow
-  swimmerId: number | null
+  swimmerId: Id | null
   previous: number | null
   confirming: boolean
   onConfirm: (on: boolean) => void
@@ -149,9 +155,12 @@ interface LineProps {
   onOpenResult: () => void
   onOpenChart: () => void
   onOpenInput: () => void
+  /** 入力できる（記録係・管理者） */
+  canEdit: boolean
+  canDelete: boolean
 }
 
-function HistoryLine({ row, swimmerId, previous, confirming, onConfirm, onDelete, ...open }: LineProps) {
+function HistoryLine({ row, swimmerId, previous, confirming, onConfirm, onDelete, canEdit, canDelete, ...open }: LineProps) {
   const s = row.session
   const inProgress = s.status === 'in_progress'
   const avg = swimmerId != null ? row.averages.get(swimmerId) : undefined
@@ -197,17 +206,21 @@ function HistoryLine({ row, swimmerId, previous, confirming, onConfirm, onDelete
           </>
         ) : (
           <>
-            {inProgress ? (
+            {inProgress && canEdit ? (
               <button className="primary" onClick={open.onOpenInput}>
                 続きを入力
               </button>
+            ) : inProgress ? (
+              <button onClick={open.onOpenInput}>見る</button>
             ) : (
               <button onClick={open.onOpenResult}>結果</button>
             )}
             <button onClick={open.onOpenChart}>グラフ</button>
-            <button className="danger-outline" onClick={() => onConfirm(true)}>
-              削除
-            </button>
+            {canDelete && (
+              <button className="danger-outline" onClick={() => onConfirm(true)}>
+                削除
+              </button>
+            )}
           </>
         )}
         </div>

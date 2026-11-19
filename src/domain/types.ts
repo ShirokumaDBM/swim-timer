@@ -5,16 +5,24 @@
  */
 export type Centis = number
 
+/**
+ * 選手・測定の番号。端末ごとに重ならないよう、ランダムな文字列（UUID）を使う。
+ * （複数の端末の記録をクラウドでまとめるときに、番号がぶつからないようにするため）
+ */
+export type Id = string
+
 export interface Swimmer {
-  id?: number
+  id: Id
   name: string
   grade?: string
+  /** 登録日時（ms）。一覧の並び順（登録順）に使う */
+  createdAt: number
 }
 
 export type SessionStatus = 'in_progress' | 'finished'
 
 export interface Session {
-  id?: number
+  id: Id
   /** 'YYYY-MM-DD' */
   date: string
   /** 距離（m） */
@@ -25,17 +33,19 @@ export interface Session {
   circle?: string
   memo?: string
   /** 参加選手（表示順） */
-  swimmerIds: number[]
+  swimmerIds: Id[]
   /** 各選手のレーン（1〜5、swimmerIds と同じ並び。未設定は null）。誰も設定していなければ省略 */
   lanes?: (number | null)[]
   status: SessionStatus
+  /** 記録係（クラウドの部員名簿の user_id）。クラウドと同期しない端末では使わない */
+  recorderIds?: string[]
   /** 作成日時（ms）。同じ日に複数回測定したときの並び順に使う */
   createdAt: number
 }
 
 export interface TimeRecord {
-  sessionId: number
-  swimmerId: number
+  sessionId: Id
+  swimmerId: Id
   /** 何本目か（1始まり） */
   rep: number
   /** null = 欠損（その本を休んだ） */

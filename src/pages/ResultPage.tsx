@@ -1,5 +1,4 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../db'
 import { findComparableSessions, type SessionDetail } from '../domain/compare'
 import { resultCsv, resultCsvFileName } from '../domain/csv'
 import { buildGrid, toRepTimes } from '../domain/grid'
@@ -7,10 +6,12 @@ import { hasLanes, laneRowOrder } from '../domain/lanes'
 import { sessionTitle } from '../domain/sessionLabel'
 import { swimmerStats } from '../domain/stats'
 import { formatDiff, formatTime } from '../domain/time'
-import type { Centis, Session, SessionStatus, TimeRecord } from '../domain/types'
+import type { Centis, Id, Session, SessionStatus, TimeRecord } from '../domain/types'
 import { listFinishedSessions, loadSessionDetails } from '../repo/results'
 import { getSession } from '../repo/sessions'
+import { getSwimmers } from '../repo/swimmers'
 import { listTimes } from '../repo/times'
+import { usePermissions } from '../cloud/permissions'
 import { ResultCompare } from './ResultCompare'
 import { loadLaneOrder } from './settings'
 import './InputPage.css'
@@ -18,10 +19,10 @@ import './ResultPage.css'
 
 interface Props {
   /** 未指定なら一番新しい終了した測定 */
-  sessionId?: number
+  sessionId?: Id
   /** タイムを直す（入力画面で開く） */
-  onEditTimes: (sessionId: number) => void
-  onShowChart: (sessionId: number) => void
+  onEditTimes: (sessionId: Id) => void
+  onShowChart: (sessionId: Id) => void
   onGoInput: () => void
 }
 
@@ -31,8 +32,8 @@ export function ResultPage({ sessionId, onEditTimes, onShowChart, onGoInput }: P
       (sessionId != null ? await getSession(sessionId) : undefined) ?? (await listFinishedSessions())[0]
     if (!session) return { session: undefined }
     const [swimmers, records, details] = await Promise.all([
-      db.swimmers.bulkGet(session.swimmerIds),
-      listTimes(session.id!),
+      getSwimmers(session.swimmerIds),
+      listTimes(session.id),
       loadSessionDetails(session.distance, session.reps),
     ])
     const comparable = findComparableSessions(session, details)
@@ -56,8 +57,8 @@ export function ResultPage({ sessionId, onEditTimes, onShowChart, onGoInput }: P
       allNames={data.names!}
       records={data.records!}
       comparable={data.comparable!}
-      onEditTimes={() => onEditTimes(data.session!.id!)}
-      onShowChart={() => onShowChart(data.session!.id!)}
+      onEditTimes={() => onEditTimes(data.session!.id)}
+      onShowChart={() => onShowChart(data.session!.id)}
     />
   )
 }
@@ -72,6 +73,7 @@ interface ResultProps {
 }
 
 function Result({ session, allNames, records, comparable, onEditTimes, onShowChart }: ResultProps) {
+  const perm = usePermissions()
   const cols = session.reps
   const withLanes = hasLanes(session.lanes)
   // 並びは測定入力画面と同じ設定に合わせる
@@ -119,7 +121,8 @@ function Result({ session, allNames, records, comparable, onEditTimes, onShowCha
         <span className="head-actions">
           <button onClick={onShowChart}>グラフを見る</button>
           <button onClick={downloadCsv}>CSVで保存</button>
-          <button onClick={onEditTimes}>タイムを修正</button>
+          {/* 終了した測定のタイムを直せるのは管理者（入力中なら記録係も） */}
+          {perm.canEditSession(session) && <button onClick={onEditTimes}>タイムを修正</button>}
         </span>
       </div>
 

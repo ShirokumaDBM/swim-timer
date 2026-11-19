@@ -3,22 +3,35 @@ import { useState, type FormEvent } from 'react'
 import { todayString } from '../domain/date'
 import { draftFromSession, draftToInput, emptyDraft, type SessionDraft } from '../domain/sessionDraft'
 import { sessionMenu, sessionTitle } from '../domain/sessionLabel'
-import type { Session } from '../domain/types'
-import { db } from '../db'
+import type { Id, Session } from '../domain/types'
 import { createSession, deleteSession, getLatestSession, listInProgressSessions, SessionError } from '../repo/sessions'
 import { listSwimmers } from '../repo/swimmers'
+import { countTimes } from '../repo/times'
+import { usePermissions } from '../cloud/permissions'
+import { useMembers } from '../cloud/useMembers'
 import { SessionFields } from './SessionFields'
 import './NewSessionPage.css'
 
 /** 入力中の測定の1行（続きを入力／削除） */
-function InProgressItem({ session, onOpen }: { session: Session; onOpen: () => void }) {
+function InProgressItem({
+  session,
+  onOpen,
+  canEdit,
+  canDelete,
+}: {
+  session: Session
+  onOpen: () => void
+  /** 入力できる（記録係・管理者）。できなければ「見る」 */
+  canEdit: boolean
+  canDelete: boolean
+}) {
   const [confirming, setConfirming] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const timeCount = useLiveQuery(() => db.times.where('sessionId').equals(session.id!).count(), [session.id])
+  const timeCount = useLiveQuery(() => countTimes(session.id), [session.id])
 
   async function remove() {
     try {
-      await deleteSession(session.id!)
+      await deleteSession(session.id)
     } catch (err) {
       setError(`削除できませんでした: ${String(err)}`)
     }
@@ -42,10 +55,12 @@ function InProgressItem({ session, onOpen }: { session: Session; onOpen: () => v
           </>
         ) : (
           <>
-            <button onClick={onOpen}>続きを入力</button>
-            <button className="danger-outline" onClick={() => setConfirming(true)}>
-              削除
-            </button>
+            <button onClick={onOpen}>{canEdit ? '続きを入力' : '見る'}</button>
+            {canDelete && (
+              <button className="danger-outline" onClick={() => setConfirming(true)}>
+                削除
+              </button>
+            )}
           </>
         )}
       </span>
@@ -60,7 +75,7 @@ function InProgressItem({ session, onOpen }: { session: Session; onOpen: () => v
 
 interface Props {
   /** 作成した／続ける測定の入力画面へ */
-  onOpenSession: (sessionId: number) => void
+  onOpenSession: (sessionId: Id) => void
   onGoSwimmers: () => void
 }
 
@@ -72,10 +87,14 @@ export function NewSessionPage({ onOpenSession, onGoSwimmers }: Props) {
   const [draft, setDraft] = useState<SessionDraft>(() => emptyDraft(todayString()))
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  // クラウドと同期している端末では、測定を作れるのは管理者だけ。記録係は管理者が選ぶ
+  const perm = usePermissions()
+  const pickRecorders = perm.cloud && perm.isAdmin
+  const { members, error: membersError } = useMembers(pickRecorders)
 
   if (!swimmers || !inProgress) return <p>読み込み中…</p>
 
-  const allIds = swimmers.map((s) => s.id!)
+  const allIds = swimmers.map((s) => s.id)
 
   function change(patch: Partial<SessionDraft>) {
     setError(null)
@@ -111,12 +130,23 @@ export function NewSessionPage({ onOpenSession, onGoSwimmers }: Props) {
           <h3>入力中の測定があります</h3>
           <ul>
             {inProgress.map((s) => (
-              <InProgressItem key={s.id} session={s} onOpen={() => onOpenSession(s.id!)} />
+              <InProgressItem
+                key={s.id}
+                session={s}
+                onOpen={() => onOpenSession(s.id)}
+                canEdit={perm.canEditSession(s)}
+                canDelete={perm.canDeleteSession}
+              />
             ))}
           </ul>
         </section>
       )}
 
+      {!perm.canCreateSession ? (
+        <section className="card">
+          <p className="hint">{perm.whyNoCreate}</p>
+        </section>
+      ) : (
       <form
         className="card session-form"
         onSubmit={submit}
@@ -137,7 +167,14 @@ export function NewSessionPage({ onOpenSession, onGoSwimmers }: Props) {
           </div>
         )}
 
-        <SessionFields draft={draft} onChange={change} swimmers={swimmers} onGoSwimmers={onGoSwimmers} />
+        <SessionFields
+          draft={draft}
+          onChange={change}
+          swimmers={swimmers}
+          onGoSwimmers={onGoSwimmers}
+          recorderOptions={pickRecorders ? members : undefined}
+          recorderError={pickRecorders ? membersError : undefined}
+        />
 
         {notice && <p className="notice">{notice}</p>}
         {error && (
@@ -158,6 +195,7 @@ export function NewSessionPage({ onOpenSession, onGoSwimmers }: Props) {
           )}
         </div>
       </form>
+      )}
     </div>
   )
 }

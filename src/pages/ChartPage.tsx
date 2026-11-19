@@ -12,7 +12,7 @@ import {
   type TooltipContentProps,
 } from 'recharts'
 import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent'
-import { db } from '../db'
+import type { Id } from '../domain/types'
 import { MAX_COMPARE, repSeries, timeDomain, timeTicks, toggleSlot, type RepPoint, type SlotEntry } from '../domain/chart'
 import { buildGrid, toRepTimes } from '../domain/grid'
 import { laneRowOrder } from '../domain/lanes'
@@ -20,6 +20,7 @@ import { sessionTitle } from '../domain/sessionLabel'
 import { swimmerStats } from '../domain/stats'
 import { formatDiff, formatTime } from '../domain/time'
 import { listSessions } from '../repo/sessions'
+import { getSwimmers } from '../repo/swimmers'
 import { listTimes } from '../repo/times'
 import { COLORS, repTicks, SERIES_COLORS } from './chartTheme'
 import { CompareChart } from './CompareChart'
@@ -30,9 +31,9 @@ import './ChartPage.css'
 
 interface Props {
   /** 最初に開く測定（未指定なら一番新しい測定） */
-  initialSessionId?: number
+  initialSessionId?: Id
   /** 最初に選ぶ選手（未指定なら先頭の選手） */
-  initialSwimmerId?: number
+  initialSwimmerId?: Id
 }
 
 type Point = RepPoint & { missing: boolean }
@@ -49,7 +50,7 @@ export function ChartPage({ initialSessionId, initialSwimmerId }: Props) {
     const sessions = await listSessions()
     const session = sessions.find((s) => s.id === sessionId) ?? sessions[0]
     if (!session) return { sessions }
-    const [swimmers, records] = await Promise.all([db.swimmers.bulkGet(session.swimmerIds), listTimes(session.id!)])
+    const [swimmers, records] = await Promise.all([getSwimmers(session.swimmerIds), listTimes(session.id)])
     return { sessions, session, swimmers, records }
   }, [sessionId])
 
@@ -66,9 +67,9 @@ export function ChartPage({ initialSessionId, initialSwimmerId }: Props) {
   // 選手の並びは測定入力画面と同じ（レーン順の設定に合わせる）
   const rowOrder = laneRowOrder(session.lanes, session.swimmerIds.length, loadLaneOrder())
   const ids = rowOrder.map((i) => session.swimmerIds[i])
-  const nameOf = (id: number) =>
+  const nameOf = (id: Id) =>
     data.swimmers![session.swimmerIds.indexOf(id)]?.name ?? '（削除された選手）'
-  const laneOf = (id: number) => session.lanes?.[session.swimmerIds.indexOf(id)] ?? null
+  const laneOf = (id: Id) => session.lanes?.[session.swimmerIds.indexOf(id)] ?? null
 
   const selected = swimmerId != null && ids.includes(swimmerId) ? swimmerId : ids[0]
   const row = buildGrid([selected], session.reps, data.records!)[0]
@@ -79,14 +80,14 @@ export function ChartPage({ initialSessionId, initialSwimmerId }: Props) {
   // 重ねて比べる選手（この測定に参加している選手だけ）
   const compareEntries = (entries ?? ids.slice(0, MAX_COMPARE).reduce<SlotEntry[]>((l, id) => toggleSlot(l, id), []))
     .filter((e) => ids.includes(e.id))
-  const slotOf = (id: number) => compareEntries.find((e) => e.id === id)?.slot
+  const slotOf = (id: Id) => compareEntries.find((e) => e.id === id)?.slot
   const compareRows = buildGrid(ids, session.reps, data.records!)
   const compareSeries = ids
     .filter((id) => slotOf(id) != null)
     .map((id) => ({ id, name: nameOf(id), slot: slotOf(id)!, row: compareRows[ids.indexOf(id)] }))
   const full = compareEntries.length >= MAX_COMPARE
 
-  function changeSession(id: number) {
+  function changeSession(id: Id) {
     setSessionId(id)
     // 選手が変わるので、重ねる選手は選び直し（先頭から8人）
     setEntries(null)
@@ -102,7 +103,7 @@ export function ChartPage({ initialSessionId, initialSwimmerId }: Props) {
           ) : (
             <label>
               測定
-              <select value={session.id} onChange={(e) => changeSession(Number(e.target.value))}>
+              <select value={session.id} onChange={(e) => changeSession(e.target.value)}>
                 {sessions.map((s) => (
                   <option key={s.id} value={s.id}>
                     {sessionTitle(s)}（{s.swimmerIds.length}人）{s.status === 'in_progress' ? '・入力中' : ''}

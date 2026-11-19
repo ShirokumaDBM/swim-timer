@@ -1,5 +1,6 @@
-import { db } from '../db'
-import type { Swimmer } from '../domain/types'
+import { db, newId } from '../db'
+import { swimmerRef, track } from '../sync/outbox'
+import type { Id, Swimmer } from '../domain/types'
 
 export class SwimmerError extends Error {}
 
@@ -16,7 +17,7 @@ function normalize(input: SwimmerInput): { name: string; grade?: string } {
 }
 
 /** 同じ名前の選手がいないか（入力表で区別できなくなるため禁止） */
-async function assertUniqueName(name: string, exceptId?: number) {
+async function assertUniqueName(name: string, exceptId?: Id) {
   const key = name.toLowerCase()
   const dup = await db.swimmers
     .filter((s) => s.id !== exceptId && s.name.toLowerCase() === key)
@@ -30,28 +31,35 @@ async function assertUniqueName(name: string, exceptId?: number) {
 
 /** 登録順で全選手を返す */
 export function listSwimmers(): Promise<Swimmer[]> {
-  return db.swimmers.orderBy('id').toArray()
+  return db.swimmers.orderBy('createdAt').toArray()
 }
 
-export async function addSwimmer(input: SwimmerInput): Promise<number> {
+export async function addSwimmer(input: SwimmerInput, now = Date.now()): Promise<Id> {
   const data = normalize(input)
-  return db.transaction('rw', db.swimmers, async () => {
+  return db.transaction('rw', db.swimmers, db.outbox, async () => {
     await assertUniqueName(data.name)
-    return (await db.swimmers.add(data)) as number
+    // 続けて登録しても登録順が入れ替わらないよう、必ず最後の選手より後の時刻にする
+    const last = await db.swimmers.orderBy('createdAt').last()
+    const createdAt = Math.max(now, (last?.createdAt ?? 0) + 1)
+    const id = newId()
+    await db.swimmers.add({ id, ...data, createdAt })
+    await track(swimmerRef(id))
+    return id
   })
 }
 
-export async function updateSwimmer(id: number, input: SwimmerInput): Promise<void> {
+export async function updateSwimmer(id: Id, input: SwimmerInput): Promise<void> {
   const data = normalize(input)
-  await db.transaction('rw', db.swimmers, async () => {
+  await db.transaction('rw', db.swimmers, db.outbox, async () => {
     await assertUniqueName(data.name, id)
     const n = await db.swimmers.update(id, { name: data.name, grade: data.grade })
     if (n === 0 && !(await db.swimmers.get(id))) throw new SwimmerError('選手が見つかりません。')
+    await track(swimmerRef(id))
   })
 }
 
 /** その選手の記録（タイム・参加した測定）があるか */
-export async function hasRecords(id: number): Promise<boolean> {
+export async function hasRecords(id: Id): Promise<boolean> {
   const times = await db.times.where('swimmerId').equals(id).count()
   if (times > 0) return true
   const sessions = await db.sessions.filter((s) => s.swimmerIds.includes(id)).count()
@@ -62,11 +70,17 @@ export async function hasRecords(id: number): Promise<boolean> {
  * 選手を削除する。過去の記録がある選手は削除できない
  * （記録が消えたり、名前のないタイムが残ったりするのを防ぐ）。
  */
-export async function deleteSwimmer(id: number): Promise<void> {
-  await db.transaction('rw', db.swimmers, db.times, db.sessions, async () => {
+export async function deleteSwimmer(id: Id): Promise<void> {
+  await db.transaction('rw', db.swimmers, db.times, db.sessions, db.outbox, async () => {
     if (await hasRecords(id)) {
       throw new SwimmerError('過去の記録があるため削除できません。')
     }
     await db.swimmers.delete(id)
+    await track(swimmerRef(id))
   })
+}
+
+/** 番号の並びのとおりに選手を返す（削除された選手は undefined） */
+export function getSwimmers(ids: Id[]): Promise<(Swimmer | undefined)[]> {
+  return db.swimmers.bulkGet(ids)
 }

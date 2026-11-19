@@ -1,7 +1,8 @@
-import { db } from '../db'
+import { db, newId } from '../db'
+import { sessionRef, timeRef, track } from '../sync/outbox'
 import { compareChronological } from '../domain/compare'
 import { hasLanes, isLane, MAX_LANE } from '../domain/lanes'
-import type { Session } from '../domain/types'
+import type { Id, Session } from '../domain/types'
 
 export class SessionError extends Error {}
 
@@ -12,9 +13,11 @@ export interface SessionInput {
   stroke?: string
   circle?: string
   memo?: string
-  swimmerIds: number[]
+  swimmerIds: Id[]
   /** 選手ID → レーン（任意。参加していない選手の分は無視する） */
-  lanes?: Record<number, number | undefined>
+  lanes?: Record<Id, number | undefined>
+  /** 記録係（クラウドの部員名簿の user_id。クラウドと同期しない端末では使わない） */
+  recorderIds?: string[]
 }
 
 export const MAX_REPS = 100
@@ -44,16 +47,20 @@ export function normalizeSessionInput(input: SessionInput): Omit<Session, 'id' |
     memo: opt(input.memo),
     swimmerIds,
     lanes: hasLanes(lanes) ? lanes : undefined,
+    recorderIds: input.recorderIds?.length ? [...new Set(input.recorderIds)] : undefined,
   }
 }
 
 /** 測定を作成する（状態は「入力中」） */
-export async function createSession(input: SessionInput, now = Date.now()): Promise<number> {
+export async function createSession(input: SessionInput, now = Date.now()): Promise<Id> {
   const data = normalizeSessionInput(input)
-  return db.transaction('rw', db.sessions, db.swimmers, async () => {
+  return db.transaction('rw', db.sessions, db.swimmers, db.outbox, async () => {
     const found = await db.swimmers.bulkGet(data.swimmerIds)
     if (found.some((s) => !s)) throw new SessionError('削除された選手が含まれています。選び直してください。')
-    return (await db.sessions.add({ ...data, status: 'in_progress', createdAt: now })) as number
+    const id = newId()
+    await db.sessions.add({ id, ...data, status: 'in_progress', createdAt: now })
+    await track(sessionRef(id))
+    return id
   })
 }
 
@@ -61,9 +68,9 @@ export async function createSession(input: SessionInput, now = Date.now()): Prom
  * 測定の設定を変更する。外した選手のタイムと、減らした本数より後のタイムは削除する。
  * 戻り値は削除したタイムの件数。
  */
-export async function updateSession(id: number, input: SessionInput): Promise<number> {
+export async function updateSession(id: Id, input: SessionInput): Promise<number> {
   const data = normalizeSessionInput(input)
-  return db.transaction('rw', db.sessions, db.swimmers, db.times, async () => {
+  return db.transaction('rw', db.sessions, db.swimmers, db.times, db.outbox, async () => {
     const current = await db.sessions.get(id)
     if (!current) throw new SessionError('この測定は削除されています。')
     const found = await db.swimmers.bulkGet(data.swimmerIds)
@@ -73,21 +80,25 @@ export async function updateSession(id: number, input: SessionInput): Promise<nu
       .where('sessionId')
       .equals(id)
       .filter((t) => !keep.has(t.swimmerId) || t.rep > data.reps)
-      .delete()
+      .toArray()
+    await db.times.bulkDelete(removed.map((t) => [t.sessionId, t.swimmerId, t.rep] as [Id, Id, number]))
     await db.sessions.put({ ...current, ...data, id })
-    return removed
+    await track(sessionRef(id), ...removed.map(timeRef))
+    return removed.length
   })
 }
 
-export function getSession(id: number): Promise<Session | undefined> {
+export function getSession(id: Id): Promise<Session | undefined> {
   return db.sessions.get(id)
 }
 
 /** 測定と、その測定のタイムをすべて削除する */
-export async function deleteSession(id: number): Promise<void> {
-  await db.transaction('rw', db.sessions, db.times, async () => {
+export async function deleteSession(id: Id): Promise<void> {
+  await db.transaction('rw', db.sessions, db.times, db.outbox, async () => {
+    const times = await db.times.where('sessionId').equals(id).toArray()
     await db.times.where('sessionId').equals(id).delete()
     await db.sessions.delete(id)
+    await track(sessionRef(id), ...times.map(timeRef))
   })
 }
 

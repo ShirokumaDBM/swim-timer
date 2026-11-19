@@ -1,16 +1,21 @@
 import { lazy, Suspense, useState } from 'react'
 import './App.css'
+import type { Id } from './domain/types'
+import { AccountMenu } from './cloud/AccountMenu'
+import { useAuth } from './cloud/auth'
 import { BackupPage } from './pages/BackupPage'
 import { HistoryPage } from './pages/HistoryPage'
+import { MembersPage } from './pages/MembersPage'
 import { InputPage } from './pages/InputPage'
 import { NewSessionPage } from './pages/NewSessionPage'
 import { ResultPage } from './pages/ResultPage'
 import { SwimmersPage } from './pages/SwimmersPage'
+import { SyncChoice } from './sync/SyncChoice'
 
 // グラフのライブラリは大きいので、グラフ画面を開いたときに読み込む
 const ChartPage = lazy(() => import('./pages/ChartPage').then((m) => ({ default: m.ChartPage })))
 
-type PageKey = 'swimmers' | 'new' | 'input' | 'result' | 'history' | 'chart' | 'backup'
+type PageKey = 'swimmers' | 'new' | 'input' | 'result' | 'history' | 'chart' | 'backup' | 'members'
 
 const PAGES: { key: PageKey; label: string }[] = [
   { key: 'swimmers', label: '選手管理' },
@@ -20,29 +25,33 @@ const PAGES: { key: PageKey; label: string }[] = [
   { key: 'history', label: '履歴' },
   { key: 'chart', label: 'グラフ' },
   { key: 'backup', label: 'バックアップ' },
+  // 管理者がログインしているときだけ表示する
+  { key: 'members', label: '部員' },
 ]
 
 function App() {
   const [page, setPage] = useState<PageKey>('swimmers')
   /** 測定入力画面で開く測定（未指定なら一番新しい入力中のもの） */
-  const [sessionId, setSessionId] = useState<number | undefined>()
+  const [sessionId, setSessionId] = useState<Id | undefined>()
   /** 結果画面で開く測定（未指定なら一番新しい終了した測定） */
-  const [resultId, setResultId] = useState<number | undefined>()
+  const [resultId, setResultId] = useState<Id | undefined>()
   /** グラフ画面で最初に開く測定と選手（未指定なら一番新しい測定） */
-  const [chartTarget, setChartTarget] = useState<{ sessionId?: number; swimmerId?: number }>({})
+  const [chartTarget, setChartTarget] = useState<{ sessionId?: Id; swimmerId?: Id }>({})
+  const auth = useAuth()
+  const isAdmin = auth.status === 'signedIn' && auth.member?.role === 'admin'
   const current = PAGES.find((p) => p.key === page)!
 
-  function openSession(id: number) {
+  function openSession(id: Id) {
     setSessionId(id)
     setPage('input')
   }
 
-  function showChart(id: number, swimmerId?: number) {
+  function showChart(id: Id, swimmerId?: Id) {
     setChartTarget({ sessionId: id, swimmerId })
     setPage('chart')
   }
 
-  function showResult(id: number) {
+  function showResult(id: Id) {
     setResultId(id)
     // 測定入力タブは次に入力中の測定を開く
     setSessionId(undefined)
@@ -78,6 +87,8 @@ function App() {
             />
           </Suspense>
         )
+      case 'members':
+        return <MembersPage />
       case 'backup':
         return <BackupPage />
     }
@@ -86,9 +97,12 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>スイムタイマー</h1>
+        <div className="brand-row">
+          <h1>スイムタイマー</h1>
+          <AccountMenu />
+        </div>
         <nav>
-          {PAGES.map((p) => (
+          {PAGES.filter((p) => p.key !== 'members' || isAdmin).map((p) => (
             <button
               key={p.key}
               className={p.key === page ? 'active' : ''}
@@ -100,6 +114,7 @@ function App() {
         </nav>
       </header>
       <main className="app-main">
+        <SyncChoice />
         <h2>{current.label}</h2>
         {renderPage()}
       </main>

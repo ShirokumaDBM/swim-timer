@@ -18,6 +18,8 @@ interface Props {
   /** 4桁入力したら自動で次の選手へ進む */
   autoNext: boolean
   onChangeAutoNext: (on: boolean) => void
+  /** 見るだけ（記録係でない・終了済みなど） */
+  readOnly?: boolean
 }
 
 const MISSING_MARK = '—'
@@ -27,7 +29,18 @@ const displayOf = (v: CellValue) => (v === undefined ? '' : v === null ? MISSING
  * スマホ用の入力：1本ずつ、選手を縦に並べて入力する。
  * iPhone の数字キーボードには Enter が無いので、「次へ」ボタン・別の欄をタップ・（設定すれば）4桁入力で確定する。
  */
-export function MobileEntry({ grid, stats, names, lanes, reps, initialRep, onCommit, autoNext, onChangeAutoNext }: Props) {
+export function MobileEntry({
+  grid,
+  stats,
+  names,
+  lanes,
+  reps,
+  initialRep,
+  onCommit,
+  autoNext,
+  onChangeAutoNext,
+  readOnly = false,
+}: Props) {
   const rows = grid.length
   const [rep, setRep] = useState(Math.min(initialRep, reps - 1))
   const [active, setActive] = useState<number | null>(null)
@@ -88,6 +101,7 @@ export function MobileEntry({ grid, stats, names, lanes, reps, initialRep, onCom
             average={stats[r].average}
             isActive={active === r}
             autoNext={autoNext}
+            readOnly={readOnly}
             label={`${names[r]} ${rep + 1}本目`}
             register={(el) => {
               if (el) inputs.current.set(r, el)
@@ -101,7 +115,7 @@ export function MobileEntry({ grid, stats, names, lanes, reps, initialRep, onCom
         ))}
       </ul>
 
-      <div className="entry-foot">
+      <div className="entry-foot" hidden={readOnly}>
         <label className="auto-next">
           <input type="checkbox" checked={autoNext} onChange={(e) => onChangeAutoNext(e.target.checked)} />
           4桁入力したら自動で次の選手へ（1分以上のタイムがあるときは切る）
@@ -125,6 +139,7 @@ interface RowProps {
   average: number | null
   isActive: boolean
   autoNext: boolean
+  readOnly: boolean
   label: string
   register: (el: HTMLInputElement | null) => void
   onFocus: () => void
@@ -142,6 +157,7 @@ function EntryRow({
   average,
   isActive,
   autoNext,
+  readOnly,
   label,
   register,
   onFocus,
@@ -157,6 +173,7 @@ function EntryRow({
   const display = displayOf(value)
 
   function commit(text: string): boolean {
+    if (readOnly) return true
     if (text === committed.current) return true
     const ok = onCommit(text)
     setInvalid(!ok)
@@ -198,6 +215,7 @@ function EntryRow({
       <div className="entry">
         <input
           ref={register}
+          readOnly={readOnly}
           className={value === null && draft === null ? 'num missing' : 'num'}
           value={draft ?? display}
           // 数字だけのキーボードを出す（タイムは 3852 のように数字だけで入力できる）
@@ -231,6 +249,7 @@ function EntryRow({
         {/* ボタンは全部の行に同じ場所・同じ大きさで置く。
             入力中の行だけ段が増えたりすると、ほかをタップした瞬間に画面がずれて押し間違える */}
         <button
+          hidden={readOnly}
           className="rest"
           aria-label={`${label}を休みにする`}
           // 押してもキーボードが閉じないよう、入力欄からカーソルを外さない
@@ -240,6 +259,7 @@ function EntryRow({
           休み
         </button>
         <button
+          hidden={readOnly}
           className={isActive ? 'primary next' : 'primary next idle'}
           tabIndex={isActive ? 0 : -1}
           aria-hidden={!isActive}

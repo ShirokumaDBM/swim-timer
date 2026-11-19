@@ -11,7 +11,7 @@ import { formatDate } from '../domain/date'
 import { toRepTimes, type Grid } from '../domain/grid'
 import { sessionMenu } from '../domain/sessionLabel'
 import { formatDiff, formatTime } from '../domain/time'
-import type { Centis, Session } from '../domain/types'
+import type { Centis, Id, Session } from '../domain/types'
 import { METRIC_OPTIONS } from './metricOptions'
 
 // グラフのライブラリは大きいので、比較のグラフを表示するときに読み込む
@@ -20,7 +20,7 @@ const CompareChart = lazy(() => import('./CompareChart').then((m) => ({ default:
 interface Props {
   session: Session
   /** 表示順の選手ID・名前・タイム（結果表と同じ並び） */
-  swimmerIds: number[]
+  swimmerIds: Id[]
   names: string[]
   grid: Grid
   /** 選手名のセル（レーン番号つき） */
@@ -36,7 +36,7 @@ const COLUMNS = METRIC_OPTIONS
 
 export function ResultCompare({ session, swimmerIds, names, grid, nameCell, comparable }: Props) {
   const [scope, setScope] = useState<CompareScope>('previous')
-  const [chartSwimmer, setChartSwimmer] = useState<number | null>(null)
+  const [chartSwimmer, setChartSwimmer] = useState<Id | null>(null)
 
   // 比較の条件は距離・本数（種目は問わない）
   const condition = sessionMenu({ distance: session.distance, reps: session.reps })
@@ -163,9 +163,9 @@ export function ResultCompare({ session, swimmerIds, names, grid, nameCell, comp
           reps={session.reps}
           showSummary={false}
           series={[
-            { id: 1, name: '今回', slot: 0, row: grid[sel] },
+            { id: 'current', name: '今回', slot: 0, row: grid[sel] },
             ...(selResult.series
-              ? [{ id: 2, name: SCOPE_SHORT[scope], slot: 1, row: selResult.series, emptyLabel: '—' }]
+              ? [{ id: 'reference', name: SCOPE_SHORT[scope], slot: 1, row: selResult.series, emptyLabel: '—' }]
               : []),
           ]}
         />

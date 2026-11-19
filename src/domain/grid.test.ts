@@ -12,12 +12,12 @@ import {
 
 describe('buildGrid', () => {
   it('記録を選手の行・本の列に並べる（未入力は undefined、欠損は null）', () => {
-    const grid = buildGrid([10, 20], 3, [
-      { sessionId: 1, swimmerId: 20, rep: 2, centis: 3852 },
-      { sessionId: 1, swimmerId: 10, rep: 1, centis: 3733 },
-      { sessionId: 1, swimmerId: 10, rep: 3, centis: null },
-      { sessionId: 1, swimmerId: 99, rep: 1, centis: 1 }, // 参加していない選手は無視
-      { sessionId: 1, swimmerId: 10, rep: 4, centis: 1 }, // 範囲外は無視
+    const grid = buildGrid(['10', '20'], 3, [
+      { sessionId: '1', swimmerId: '20', rep: 2, centis: 3852 },
+      { sessionId: '1', swimmerId: '10', rep: 1, centis: 3733 },
+      { sessionId: '1', swimmerId: '10', rep: 3, centis: null },
+      { sessionId: '1', swimmerId: '99', rep: 1, centis: 1 }, // 参加していない選手は無視
+      { sessionId: '1', swimmerId: '10', rep: 4, centis: 1 }, // 範囲外は無視
     ])
     expect(grid).toEqual([
       [3733, undefined, null],

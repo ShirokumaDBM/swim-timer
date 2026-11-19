@@ -9,9 +9,9 @@ const row = (
   averages: [number, number][],
   status: Session['status'] = 'finished',
 ): HistoryRow => ({
-  session: { id, date: '2026-11-01', distance, reps, swimmerIds: [1, 2], status, createdAt: id },
+  session: { id: String(id), date: '2026-11-01', distance, reps, swimmerIds: ['1', '2'], status, createdAt: id },
   timeCount: 0,
-  averages: new Map(averages),
+  averages: new Map(averages.map(([k, v]) => [String(k), v])),
 })
 
 // 新しい順
@@ -25,13 +25,13 @@ const rows = [
 
 describe('previousAverage', () => {
   it('同じ条件・終了済みで、その選手が参加した直近の測定の平均', () => {
-    expect(previousAverage(rows, 0, 1)).toBe(3850)
-    expect(previousAverage(rows, 0, 2)).toBe(4000)
+    expect(previousAverage(rows, 0, '1')).toBe(3850)
+    expect(previousAverage(rows, 0, '2')).toBe(4000)
   })
 
   it('なければ null', () => {
-    expect(previousAverage(rows, 4, 1)).toBeNull()
-    expect(previousAverage(rows, 2, 1)).toBeNull()
+    expect(previousAverage(rows, 4, '1')).toBeNull()
+    expect(previousAverage(rows, 2, '1')).toBeNull()
   })
 })
 

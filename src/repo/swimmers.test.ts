@@ -16,7 +16,7 @@ beforeEach(async () => {
 describe('addSwimmer', () => {
   it('登録すると保存される（前後の空白は除く）', async () => {
     const id = await addSwimmer({ name: '  山田 太郎 ', grade: ' 2年 ' })
-    expect(await db.swimmers.get(id)).toEqual({ id, name: '山田 太郎', grade: '2年' })
+    expect(await db.swimmers.get(id)).toMatchObject({ id, name: '山田 太郎', grade: '2年' })
   })
 
   it('学年は空なら保存しない', async () => {
@@ -46,7 +46,9 @@ describe('updateSwimmer', () => {
   it('名前と学年を変更できる', async () => {
     const id = await addSwimmer({ name: '山田', grade: '1年' })
     await updateSwimmer(id, { name: '山田 太郎', grade: '' })
-    expect(await db.swimmers.get(id)).toEqual({ id, name: '山田 太郎', grade: undefined })
+    const saved = await db.swimmers.get(id)
+    expect(saved).toMatchObject({ id, name: '山田 太郎' })
+    expect(saved!.grade).toBeUndefined()
   })
 
   it('自分と同じ名前のままの保存はできるが、他の選手と同じ名前にはできない', async () => {
@@ -66,7 +68,7 @@ describe('deleteSwimmer', () => {
 
   it('タイムの記録がある選手は削除できない', async () => {
     const id = await addSwimmer({ name: 'A' })
-    await db.times.put({ sessionId: 1, swimmerId: id, rep: 1, centis: 3852 })
+    await db.times.put({ sessionId: '1', swimmerId: id, rep: 1, centis: 3852 })
     await expect(deleteSwimmer(id)).rejects.toThrow('過去の記録')
     expect(await db.swimmers.get(id)).toBeDefined()
   })
@@ -74,6 +76,7 @@ describe('deleteSwimmer', () => {
   it('測定に参加登録されている選手は削除できない', async () => {
     const id = await addSwimmer({ name: 'A' })
     await db.sessions.add({
+      id: 's1',
       date: '2026-11-07',
       distance: 50,
       reps: 20,

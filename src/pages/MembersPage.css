@@ -1,0 +1,102 @@
+.members-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 900px;
+}
+
+.members-page .card > .hint {
+  margin: 0 0 8px;
+}
+
+.role-help {
+  margin: 0;
+  padding-left: 1.2em;
+  line-height: 1.7;
+}
+
+.members-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.members-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.member-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.member-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.member-row.pending {
+  border-color: #f0b429;
+  background: #fffbea;
+}
+
+.member-row .who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.member-row .avatar {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.member-row .avatar.empty {
+  background: var(--border);
+}
+
+.member-row .name {
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.member-row .me {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: #e6f0fa;
+  color: var(--header-bg);
+  font-size: 0.75rem;
+  font-weight: normal;
+}
+
+.member-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.member-row select {
+  color: var(--fg);
+}
+

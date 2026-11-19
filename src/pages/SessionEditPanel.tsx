@@ -1,9 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState, type FormEvent } from 'react'
 import { draftFromSession, draftToInput, timesRemovedBy, type SessionDraft } from '../domain/sessionDraft'
-import type { Session, Swimmer, TimeRecord } from '../domain/types'
+import type { Id, Session, Swimmer, TimeRecord } from '../domain/types'
 import { normalizeSessionInput, SessionError, updateSession } from '../repo/sessions'
 import { listSwimmers } from '../repo/swimmers'
+import { usePermissions } from '../cloud/permissions'
+import { useMembers } from '../cloud/useMembers'
 import { SessionFields } from './SessionFields'
 import './SessionEditPanel.css'
 
@@ -22,7 +24,11 @@ export function SessionEditPanel({ session, records, onClose }: Props) {
 }
 
 function EditForm({ session, records, swimmers, onClose }: Props & { swimmers: Swimmer[] }) {
-  const allIds = swimmers.map((s) => s.id!)
+  // 記録係を変えられるのは管理者だけ（記録係が自分で編集するときは、記録係の欄は出さない）
+  const perm = usePermissions()
+  const pickRecorders = perm.cloud && perm.isAdmin
+  const { members, error: membersError } = useMembers(pickRecorders)
+  const allIds = swimmers.map((s) => s.id)
   const [draft, setDraft] = useState<SessionDraft>(() => draftFromSession(session, allIds))
   const [error, setError] = useState<string | null>(null)
   /** 消えるタイムがあるときの確認中 */
@@ -35,7 +41,7 @@ function EditForm({ session, records, swimmers, onClose }: Props & { swimmers: S
   }
 
   /** 消えるタイムの説明（なければ null） */
-  function removalMessage(swimmerIds: number[], reps: number): string | null {
+  function removalMessage(swimmerIds: Id[], reps: number): string | null {
     const removed = timesRemovedBy(records, swimmerIds, reps)
     if (removed.length === 0) return null
     const keep = new Set(swimmerIds)
@@ -59,7 +65,7 @@ function EditForm({ session, records, swimmers, onClose }: Props & { swimmers: S
         setConfirming(message)
         return
       }
-      await updateSession(session.id!, input)
+      await updateSession(session.id, input)
       onClose()
     } catch (err) {
       setConfirming(null)
@@ -75,7 +81,13 @@ function EditForm({ session, records, swimmers, onClose }: Props & { swimmers: S
   return (
     <form className="card session-form session-edit" onSubmit={submit} aria-label="測定情報の編集">
       <h4>測定情報の編集</h4>
-      <SessionFields draft={draft} onChange={change} swimmers={swimmers} />
+      <SessionFields
+        draft={draft}
+        onChange={change}
+        swimmers={swimmers}
+        recorderOptions={pickRecorders ? members : undefined}
+        recorderError={pickRecorders ? membersError : undefined}
+      />
 
       {error && (
         <p className="error" role="alert">

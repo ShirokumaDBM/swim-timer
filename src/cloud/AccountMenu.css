@@ -1,0 +1,177 @@
+.account {
+  position: relative;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.account button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Discord の色のボタン */
+.login-button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #5865f2;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.login-button:hover {
+  background: #4752c4;
+}
+
+.login-button:disabled {
+  opacity: 0.7;
+}
+
+.account-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 4px 10px 4px 4px;
+  border: none;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  color: inherit;
+  font-size: 0.9rem;
+}
+
+.account-button:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.avatar {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar.empty {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.account-name {
+  min-width: 0;
+  max-width: 10em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role-badge {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--header-bg);
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.role-badge.pending {
+  background: #fff3c4;
+  color: #8a6d00;
+}
+
+/* 同期の状態：緑 = 同期済み、黄 = 送信待ち・同期中・選択待ち、灰 = 電波なし、赤 = 失敗 */
+.sync-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #2e9d4f;
+}
+
+.sync-dot.syncing,
+.sync-dot.pending,
+.sync-dot.needsChoice {
+  background: #f0b429;
+}
+
+.sync-dot.offline {
+  background: #9aa4ae;
+}
+
+.sync-dot.error {
+  background: #d93025;
+}
+
+.panel-sync {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #f6f8fa;
+}
+
+.panel-sync p {
+  margin: 0 0 4px;
+}
+
+.panel-sync p:last-child {
+  margin-bottom: 0;
+}
+
+.account-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  width: min(300px, calc(100vw - 24px));
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--fg);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  font-size: 0.9rem;
+}
+
+.account-panel p {
+  margin: 0 0 10px;
+}
+
+.account-panel .panel-name {
+  font-weight: bold;
+}
+
+.panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.panel-actions button {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 0.85rem;
+}
+
+.account-error {
+  margin: 6px 0 0;
+  color: var(--slower);
+  font-size: 0.85rem;
+}
+
+.account > .account-error {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 24px));
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #fdecea;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
