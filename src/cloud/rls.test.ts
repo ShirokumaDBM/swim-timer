@@ -130,6 +130,38 @@ describe('0001 からの切り替え', () => {
     await db.close()
   }, 60_000)
 
+  it('以前の試作（新しい人を none で登録する版）が残っていても、0002 の後は新しい人がログインできる', async () => {
+    const db = await newDb()
+    await signUp(db, U.admin, 'admin')
+    // 試作版の状態を再現：役割 none を許し、新しい人を none で登録し、役割の変更を止めるトリガーがある
+    await db.exec(`
+      alter table public.members drop constraint members_role_check;
+      alter table public.members add constraint members_role_check check (role in ('none', 'member', 'admin'));
+      update public.members set role = 'admin';
+      create or replace function public.handle_new_user() returns trigger
+      language plpgsql security definer set search_path = public as $f$
+      begin
+        insert into public.members (user_id, display_name, role) values (new.id, '', 'none');
+        return new;
+      end $f$;
+      create function public.guard_members() returns trigger language plpgsql as $f$
+      begin raise exception 'blocked'; end $f$;
+      create trigger guard_members before update on public.members for each row execute function public.guard_members();
+    `)
+    await signUp(db, U.yamada, 'yamada')
+    await db.exec(M0002)
+    await signUp(db, U.stranger, 'stranger')
+    const r = (await db.query<Row>(`select user_id, role, display_name from public.members order by user_id`)).rows
+    expect(r).toEqual([
+      { user_id: U.admin, role: 'admin', display_name: 'admin' },
+      { user_id: U.yamada, role: 'pending', display_name: '' },
+      { user_id: U.stranger, role: 'pending', display_name: 'stranger' },
+    ])
+    // 管理者が承認できる（役割の変更を止めるトリガーは片付いている）
+    await db.query(`update public.members set role = 'member' where user_id = $1`, [U.yamada])
+    await db.close()
+  }, 60_000)
+
   it('0002 を2回実行しても壊れない（記録・役割はそのまま）', async () => {
     await pg.exec(M0002)
     expect(await roleOf(U.admin)).toBe('admin')

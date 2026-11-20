@@ -23,9 +23,41 @@ begin;
 -- 1. 役割：pending / member / admin（入力担当は部員に読み替える）
 -- ---------------------------------------------------------------------
 
+-- 以前の試作（Discord のロールで自動承認する版）を実行していた場合の後片付け。
+-- その版は新しい人を 'none' で登録し、役割の変更を止めるトリガーを付けていた
+drop trigger if exists guard_members on public.members;
+drop function if exists public.guard_members();
+
 alter table public.members drop constraint if exists members_role_check;
+alter table public.members alter column role set default 'pending';
 update public.members set role = 'member' where role = 'recorder';
+update public.members set role = 'pending' where role not in ('pending', 'member', 'admin');
 alter table public.members add constraint members_role_check check (role in ('pending', 'member', 'admin'));
+
+-- 管理者が1人もいなければ、いちばん早くログインした人を管理者にする（誰も承認できなくならないように）
+update public.members set role = 'admin'
+where user_id = (select u.id from auth.users u join public.members m on m.user_id = u.id order by u.created_at limit 1)
+  and not exists (select 1 from public.members where role = 'admin');
+
+-- 初めてログインした人を名簿に入れる（0001 と同じ。最初の人は管理者、2人目からは承認待ち）。
+-- 以前の試作で書き換えられていても、ここで元に戻す
+create or replace function public.handle_new_user() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  perform pg_advisory_xact_lock(hashtext('swim-timer:first-admin'));
+  insert into public.members (user_id, display_name, avatar_url, role)
+  values (
+    new.id,
+    public.discord_name(new.raw_user_meta_data),
+    new.raw_user_meta_data ->> 'avatar_url',
+    case when exists (select 1 from public.members where role = 'admin') then 'pending' else 'admin' end
+  )
+  on conflict (user_id) do nothing;
+  return new;
+end $$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_user();
 
 -- ---------------------------------------------------------------------
 -- 2. 測定：記録係
